@@ -93,24 +93,80 @@ chown -R $APP_USER:www-data $APP_DIR
 chmod -R 755 $APP_DIR
 
 echo -e "${BLUE}📥 Step 7: Setting up application files...${NC}"
-# Copy application files to the app directory
+# Determine source directory and copy files
+SOURCE_DIR=""
 
-# Check if we're in a development environment or need to clone from GitHub
-if [ -f "/home/project/package.json" ]; then
-    echo "Copying from development environment..."
+# Check multiple possible source locations
+if [ -f "package.json" ]; then
+    SOURCE_DIR="$(pwd)"
+    echo "Found package.json in current directory: $SOURCE_DIR"
+elif [ -f "/home/project/package.json" ]; then
+    SOURCE_DIR="/home/project"
+    echo "Found package.json in /home/project"
+elif [ -f "/home/$APP_USER/deployment1/package.json" ]; then
+    SOURCE_DIR="/home/$APP_USER/deployment1"
+    echo "Found package.json in user's deployment1 directory"
+else
+    echo "No local package.json found, cloning from GitHub..."
+    SOURCE_DIR=""
+fi
+
+if [ ! -z "$SOURCE_DIR" ]; then
+    echo "Copying application files from: $SOURCE_DIR"
+    
+    # Ensure target directory exists
     mkdir -p $APP_DIR
-    cp -r /home/project/* $APP_DIR/ 2>/dev/null || cp -r ./* $APP_DIR/
+    
+    # Copy all files except .git directory
+    rsync -av --exclude='.git' --exclude='node_modules' --exclude='dist' "$SOURCE_DIR/" "$APP_DIR/"
+    
+    # Verify package.json was copied
+    if [ -f "$APP_DIR/package.json" ]; then
+        echo -e "${GREEN}✅ Application files copied successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to copy package.json${NC}"
+        exit 1
+    fi
 else
     echo "Cloning from GitHub repository: $GITHUB_REPO"
     # Clone to temporary directory first, then move
     TEMP_DIR="/tmp/deployment-app-$(date +%s)"
-    git clone $GITHUB_REPO $TEMP_DIR
-    mv $TEMP_DIR $APP_DIR
+    
+    if git clone $GITHUB_REPO $TEMP_DIR; then
+        # Remove existing app directory if it exists
+        rm -rf $APP_DIR
+        mv $TEMP_DIR $APP_DIR
+        echo -e "${GREEN}✅ Repository cloned successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to clone repository${NC}"
+        echo "Please check:"
+        echo "1. Internet connection"
+        echo "2. Repository URL: $GITHUB_REPO"
+        echo "3. Repository accessibility"
+        exit 1
+    fi
 fi
 
 # Set proper ownership after copying/cloning
 chown -R $APP_USER:$APP_USER $APP_DIR
 chmod -R 755 $APP_DIR
+
+# Verify essential files exist
+echo -e "${BLUE}🔍 Verifying application files...${NC}"
+if [ ! -f "$APP_DIR/package.json" ]; then
+    echo -e "${RED}❌ package.json not found in $APP_DIR${NC}"
+    echo "Directory contents:"
+    ls -la $APP_DIR/
+    exit 1
+fi
+
+if [ ! -f "$APP_DIR/src/main.jsx" ] && [ ! -f "$APP_DIR/src/main.js" ]; then
+    echo -e "${YELLOW}⚠️ Main application file not found${NC}"
+    echo "Directory contents:"
+    ls -la $APP_DIR/src/ 2>/dev/null || echo "src directory not found"
+fi
+
+echo -e "${GREEN}✅ Application files verified${NC}"
 
 echo -e "${BLUE}📦 Step 8: Installing application dependencies...${NC}"
 cd $APP_DIR
