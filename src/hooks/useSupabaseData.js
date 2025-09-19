@@ -193,7 +193,7 @@ export const useSupabaseData = () => {
     setDeploymentsByDate(prev => {
       const updated = { ...prev };
       Object.keys(updated).forEach(date => {
-        updated[date] = updated[date].map(d => d.id === id ? data : d);
+        updated[date] = updated[date].map(d => d.id === id ? { ...d, ...data } : d);
       });
       return updated;
     });

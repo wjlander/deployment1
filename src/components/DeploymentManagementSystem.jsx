@@ -8,6 +8,7 @@ const DeploymentManagementSystem = () => {
   const [newStaff, setNewStaff] = useState({ name: '', is_under_18: false });
   const [newPosition, setNewPosition] = useState({ name: '', type: 'position', area_id: '' });
   const [editingPosition, setEditingPosition] = useState(null);
+  const [editingDeployment, setEditingDeployment] = useState(null);
   const [newDeployment, setNewDeployment] = useState({
     staff_id: '',
     start_time: '',
@@ -272,6 +273,16 @@ const DeploymentManagementSystem = () => {
     } catch (err) {
       console.error('Error updating position:', err);
       alert('Failed to update position. Please try again.');
+    }
+  };
+
+  const handleUpdateDeployment = async (id, updates) => {
+    try {
+      await updateDeployment(id, updates);
+      setEditingDeployment(null);
+    } catch (err) {
+      console.error('Error updating deployment:', err);
+      alert('Failed to update deployment. Please try again.');
     }
   };
 
@@ -652,18 +663,82 @@ const DeploymentManagementSystem = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {deployment.position}
-                    </span>
+                    {editingDeployment === deployment.id ? (
+                      <select
+                        defaultValue={deployment.position || ''}
+                        onChange={(e) => handleUpdateDeployment(deployment.id, { position: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        autoFocus
+                      >
+                        <option value="">Select position</option>
+                        {regularPositions.map(pos => (
+                          <option key={pos} value={pos}>{pos}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {deployment.position || 'Not set'}
+                        </span>
+                        <button
+                          onClick={() => setEditingDeployment(deployment.id)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {deployment.secondary || '-'}
+                    {editingDeployment === deployment.id ? (
+                      <select
+                        defaultValue={deployment.secondary || ''}
+                        onChange={(e) => handleUpdateDeployment(deployment.id, { secondary: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      >
+                        <option value="">Select secondary</option>
+                        {secondaryPositions.map(pos => (
+                          <option key={pos} value={pos}>{pos}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span>{deployment.secondary || '-'}</span>
+                        <button
+                          onClick={() => setEditingDeployment(deployment.id)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {deployment.area || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {deployment.cleaning || '-'}
+                    {editingDeployment === deployment.id ? (
+                      <select
+                        defaultValue={deployment.cleaning || ''}
+                        onChange={(e) => handleUpdateDeployment(deployment.id, { cleaning: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      >
+                        <option value="">Select cleaning area</option>
+                        {cleaningAreas.map(area => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span>{deployment.cleaning || '-'}</span>
+                        <button
+                          onClick={() => setEditingDeployment(deployment.id)}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-gray-900">
@@ -672,12 +747,22 @@ const DeploymentManagementSystem = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleRemoveDeployment(deployment.id)}
-                      className="text-red-600 hover:text-red-900 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-2 justify-end">
+                      {editingDeployment === deployment.id && (
+                        <button
+                          onClick={() => setEditingDeployment(null)}
+                          className="text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                          <span className="text-xs">Done</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemoveDeployment(deployment.id)}
+                        className="text-red-600 hover:text-red-900 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
