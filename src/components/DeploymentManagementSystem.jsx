@@ -17,3 +17,6 @@ const DeploymentManagementSystem = () => {
     secondary: '',
     area: '',
     cleaning: ''
+  }
+  )
+}
