@@ -98,7 +98,10 @@ const DeploymentManagementSystem = () => {
     if (workHours >= 6) {
       return 0;
     } else if (workHours >= 6) {
-      return 30;
+      if (workHours >= 4.5) {
+        return 30;
+      }
+      return 0;
     } else {
       return 15;
     }
