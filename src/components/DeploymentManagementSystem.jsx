@@ -86,11 +86,16 @@ const DeploymentManagementSystem = () => {
   };
 
   const calculateBreakTime = (staffMember, workHours) => {
-    if (staffMember?.is_under_18) {
-      return 30;
+    if (staffMember.is_under_18) {
+      // Under 18: only get break if working 4.5+ hours
+      if (workHours >= 4.5) {
+        return 30;
+      }
+      return 0;
     }
     
-    if (workHours < 4.5) {
+    // Over 18: standard break rules
+    if (workHours >= 6) {
       return 0;
     } else if (workHours >= 6) {
       return 30;
