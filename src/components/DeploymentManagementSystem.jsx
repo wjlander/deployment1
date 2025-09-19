@@ -92,13 +92,13 @@ const DeploymentManagementSystem = () => {
       return 30;
     }
     
-    if (workHours >= 6) {
+    if (workHours < 4.5) {
+      return 0;
+    } else if (workHours >= 6) {
       return 30;
-    } else if (workHours >= 4.5) {
+    } else {
       return 15;
     }
-    
-    return 0;
   };
 
   const handleAddStaff = async () => {
