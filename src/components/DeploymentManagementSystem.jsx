@@ -19,4 +19,6 @@ const DeploymentManagementSystem = () => {
     cleaning: ''
   }
   )
-}
+};
+
+export default DeploymentManagementSystem;
