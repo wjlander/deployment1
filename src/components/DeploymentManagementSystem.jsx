@@ -6,7 +6,8 @@ const DeploymentManagementSystem = () => {
   const [currentPage, setCurrentPage] = useState('deployment');
   const [selectedDate, setSelectedDate] = useState('08/09/2025');
   const [newStaff, setNewStaff] = useState({ name: '', is_under_18: false });
-  const [newPosition, setNewPosition] = useState({ name: '', type: 'position' });
+  const [newPosition, setNewPosition] = useState({ name: '', type: 'position', area_id: '' });
+  const [editingPosition, setEditingPosition] = useState(null);
   const [newDeployment, setNewDeployment] = useState({
     staff_id: '',
     start_time: '',
@@ -46,7 +47,10 @@ const DeploymentManagementSystem = () => {
     duplicateDeployments,
     getPositionsByType,
     addPosition,
-    removePosition
+    removePosition,
+    updatePosition,
+    getPositionsWithAreas,
+    getAreaPositions
   } = useSupabaseData();
 
   // Get current deployments and shift info
@@ -239,9 +243,10 @@ const DeploymentManagementSystem = () => {
       try {
         await addPosition({
           name: newPosition.name.trim(),
-          type: newPosition.type
+          type: newPosition.type,
+          area_id: newPosition.area_id || null
         });
-        setNewPosition({ name: '', type: 'position' });
+        setNewPosition({ name: '', type: 'position', area_id: '' });
       } catch (err) {
         console.error('Error adding position:', err);
         alert('Failed to add position. Please try again.');
@@ -257,6 +262,16 @@ const DeploymentManagementSystem = () => {
         console.error('Error removing position:', err);
         alert('Failed to remove position. Please try again.');
       }
+    }
+  };
+
+  const handleUpdatePosition = async (id, updates) => {
+    try {
+      await updatePosition(id, updates);
+      setEditingPosition(null);
+    } catch (err) {
+      console.error('Error updating position:', err);
+      alert('Failed to update position. Please try again.');
     }
   };
 
@@ -803,6 +818,22 @@ const DeploymentManagementSystem = () => {
               <option value="cleaning_area">Cleaning Area</option>
             </select>
           </div>
+
+          {(newPosition.type === 'position' || newPosition.type === 'pack_position') && (
+            <div className="min-w-48">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Area</label>
+              <select
+                value={newPosition.area_id}
+                onChange={(e) => setNewPosition(prev => ({ ...prev, area_id: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">No area assignment</option>
+                {positions.filter(p => p.type === 'area').map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           
           <button
             onClick={handleAddPosition}
@@ -822,7 +853,7 @@ const DeploymentManagementSystem = () => {
           { type: 'area', title: 'Areas', color: 'purple' },
           { type: 'cleaning_area', title: 'Cleaning Areas', color: 'orange' }
         ].map(({ type, title, color }) => {
-          const positionsOfType = positions.filter(p => p.type === type);
+          const positionsOfType = getPositionsWithAreas().filter(p => p.type === type);
           
           return (
             <div key={type} className="bg-white shadow-sm rounded-lg overflow-hidden">
@@ -834,16 +865,76 @@ const DeploymentManagementSystem = () => {
                 {positionsOfType.length > 0 ? (
                   <div className="space-y-2">
                     {positionsOfType.map((position) => (
-                      <div key={position.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800`}>
-                          {position.name}
-                        </span>
-                        <button
-                          onClick={() => handleRemovePosition(position.id)}
-                          className="text-red-600 hover:text-red-900 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div key={position.id} className="p-3 bg-gray-50 rounded-lg">
+                        {editingPosition === position.id ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              defaultValue={position.name}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleUpdatePosition(position.id, { name: e.target.value });
+                                } else if (e.key === 'Escape') {
+                                  setEditingPosition(null);
+                                }
+                              }}
+                              autoFocus
+                            />
+                            {(type === 'position' || type === 'pack_position') && (
+                              <select
+                                defaultValue={position.area_id || ''}
+                                onChange={(e) => handleUpdatePosition(position.id, { area_id: e.target.value || null })}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                              >
+                                <option value="">No area assignment</option>
+                                {positions.filter(p => p.type === 'area').map(area => (
+                                  <option key={area.id} value={area.id}>{area.name}</option>
+                                ))}
+                              </select>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setEditingPosition(null)}
+                                className="text-xs bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800`}>
+                                {position.name}
+                              </span>
+                              {position.area_name && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Area: {position.area_name}
+                                </div>
+                              )}
+                              {type === 'area' && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Positions: {getAreaPositions(position.id).map(p => p.name).join(', ') || 'None'}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setEditingPosition(position.id)}
+                                className="text-blue-600 hover:text-blue-900 transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleRemovePosition(position.id)}
+                                className="text-red-600 hover:text-red-900 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

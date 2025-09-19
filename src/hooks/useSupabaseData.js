@@ -259,9 +259,37 @@ export const useSupabaseData = () => {
     setPositions(prev => prev.filter(p => p.id !== id));
   };
 
+  const updatePosition = async (id, updates) => {
+    const { data, error } = await supabase
+      .from('positions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    setPositions(prev => prev.map(p => p.id === id ? data : p));
+    return data;
+  };
+
   // Helper functions
   const getPositionsByType = (type) => {
     return positions.filter(p => p.type === type).map(p => p.name);
+  };
+
+  const getPositionsWithAreas = () => {
+    return positions.map(position => {
+      const area = positions.find(p => p.id === position.area_id);
+      return {
+        ...position,
+        area_name: area ? area.name : null
+      };
+    });
+  };
+
+  const getAreaPositions = (areaId) => {
+    return positions.filter(p => p.area_id === areaId);
   };
 
   const duplicateDeployments = async (fromDate, toDate) => {
@@ -342,7 +370,10 @@ export const useSupabaseData = () => {
     // Position operations
     addPosition,
     removePosition,
+    updatePosition,
     getPositionsByType,
+    getPositionsWithAreas,
+    getAreaPositions,
     
     // Utility
     loadAllData
