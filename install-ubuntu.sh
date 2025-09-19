@@ -94,18 +94,20 @@ chmod -R 755 $APP_DIR
 
 echo -e "${BLUE}📥 Step 7: Setting up application files...${NC}"
 # Copy application files to the app directory
-mkdir -p $APP_DIR
 
 # Check if we're in a development environment or need to clone from GitHub
 if [ -f "/home/project/package.json" ]; then
     echo "Copying from development environment..."
+    mkdir -p $APP_DIR
     cp -r /home/project/* $APP_DIR/ 2>/dev/null || cp -r ./* $APP_DIR/
 else
     echo "Cloning from GitHub repository: $GITHUB_REPO"
-    sudo -u $APP_USER git clone $GITHUB_REPO $APP_DIR
+    # Clone to temporary directory first, then move
+    TEMP_DIR="/tmp/deployment-app-$(date +%s)"
+    git clone $GITHUB_REPO $TEMP_DIR
+    mv $TEMP_DIR $APP_DIR
 fi
 
-chown -R $APP_USER:$APP_USER $APP_DIR
 
 echo -e "${BLUE}📦 Step 8: Installing application dependencies...${NC}"
 cd $APP_DIR

@@ -50,8 +50,8 @@ cd $APP_DIR
 echo -e "${BLUE}📥 Step 1: Pulling latest changes...${NC}"
 if [ -d ".git" ]; then
     echo "Fetching from: $GITHUB_REPO"
-    sudo -u $REAL_USER git remote set-url origin $GITHUB_REPO
-    sudo -u $REAL_USER git pull origin main
+    git remote set-url origin $GITHUB_REPO
+    git pull origin main
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Git pull successful${NC}"
     else
@@ -60,9 +60,18 @@ if [ -d ".git" ]; then
 else
     echo -e "${YELLOW}⚠️ Not a git repository - initializing from GitHub${NC}"
     echo "Cloning from: $GITHUB_REPO"
-    cd $(dirname $APP_DIR)
+    
+    # Create a temporary directory for cloning
+    TEMP_DIR="/tmp/deployment-app-$(date +%s)"
+    git clone $GITHUB_REPO $TEMP_DIR
+    
+    # Remove old app directory and move new one in place
     rm -rf $APP_DIR
-    sudo -u $REAL_USER git clone $GITHUB_REPO $APP_DIR
+    mv $TEMP_DIR $APP_DIR
+    
+    # Set proper ownership
+    chown -R $REAL_USER:www-data $APP_DIR
+    
     cd $APP_DIR
     read -p "Repository cloned. Continue with build? (y/N): " CONTINUE
     if [[ ! $CONTINUE =~ ^[Yy]$ ]]; then
@@ -73,6 +82,8 @@ fi
 
 echo -e "${BLUE}📦 Step 2: Installing dependencies...${NC}"
 if [ -f "package.json" ]; then
+    # Ensure proper ownership before npm install
+    chown -R $REAL_USER:$REAL_USER $APP_DIR
     sudo -u $REAL_USER npm install
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Dependencies installed${NC}"
@@ -86,6 +97,8 @@ else
 fi
 
 echo -e "${BLUE}🔨 Step 3: Building application...${NC}"
+# Ensure user owns the directory for building
+chown -R $REAL_USER:$REAL_USER $APP_DIR
 sudo -u $REAL_USER npm run build
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Build successful${NC}"
