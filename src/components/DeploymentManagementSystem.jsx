@@ -43,6 +43,7 @@ const DeploymentManagementSystem = () => {
     removeStaff,
     addDeployment,
     removeDeployment,
+    updateDeployment,
     updateShiftInfo,
     deleteShiftInfo,
     duplicateDeployments,
