@@ -10,6 +10,7 @@ DOMAIN="your-domain.com"  # Change this to your actual domain
 APP_USER="$SUDO_USER"
 APP_DIR="/var/www/deployment-app"
 SERVICE_NAME="deployment-system"
+GITHUB_REPO="https://github.com/wjlander/deployment1.git"
 
 # Colors for output
 RED='\033[0;31m'
@@ -94,7 +95,16 @@ chmod -R 755 $APP_DIR
 echo -e "${BLUE}📥 Step 7: Setting up application files...${NC}"
 # Copy application files to the app directory
 mkdir -p $APP_DIR
-cp -r /home/project/* $APP_DIR/ 2>/dev/null || cp -r ./* $APP_DIR/
+
+# Check if we're in a development environment or need to clone from GitHub
+if [ -f "/home/project/package.json" ]; then
+    echo "Copying from development environment..."
+    cp -r /home/project/* $APP_DIR/ 2>/dev/null || cp -r ./* $APP_DIR/
+else
+    echo "Cloning from GitHub repository: $GITHUB_REPO"
+    sudo -u $APP_USER git clone $GITHUB_REPO $APP_DIR
+fi
+
 chown -R $APP_USER:$APP_USER $APP_DIR
 
 echo -e "${BLUE}📦 Step 8: Installing application dependencies...${NC}"
@@ -264,7 +274,10 @@ cat > /usr/local/bin/update-deployment << SCRIPT_EOF
 # Update script for deployment management system
 # Run as root or with sudo
 
-APP_DIR="$APP_DIR"
+APP_DIR="/var/www/deployment-app"
+GITHUB_REPO="https://github.com/wjlander/deployment1.git"
+
+cd $APP_DIR
 APP_USER="$APP_USER"
 
 echo "🔄 Updating Deployment Management System..."
@@ -273,7 +286,8 @@ echo "=========================================="
 cd \$APP_DIR
 
 echo "📥 Pulling latest changes..."
-if [ -d ".git" ]; then
+git remote set-url origin $GITHUB_REPO
+git pull origin main
     sudo -u \$APP_USER git pull origin main
 else
     echo "Not a git repository - manual update required"

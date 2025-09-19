@@ -8,6 +8,7 @@ set -e  # Exit on any error
 # Configuration
 APP_DIR="/var/www/deployment-app"
 SERVICE_NAME="deployment-system"
+GITHUB_REPO="https://github.com/wjlander/deployment1.git"
 
 # Colors for output
 RED='\033[0;31m'
@@ -48,6 +49,8 @@ cd $APP_DIR
 
 echo -e "${BLUE}📥 Step 1: Pulling latest changes...${NC}"
 if [ -d ".git" ]; then
+    echo "Fetching from: $GITHUB_REPO"
+    sudo -u $REAL_USER git remote set-url origin $GITHUB_REPO
     sudo -u $REAL_USER git pull origin main
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Git pull successful${NC}"
@@ -55,9 +58,13 @@ if [ -d ".git" ]; then
         echo -e "${YELLOW}⚠️ Git pull failed or no changes${NC}"
     fi
 else
-    echo -e "${YELLOW}⚠️ Not a git repository - manual update required${NC}"
-    echo "Please manually copy your updated files to $APP_DIR"
-    read -p "Continue with build? (y/N): " CONTINUE
+    echo -e "${YELLOW}⚠️ Not a git repository - initializing from GitHub${NC}"
+    echo "Cloning from: $GITHUB_REPO"
+    cd $(dirname $APP_DIR)
+    rm -rf $APP_DIR
+    sudo -u $REAL_USER git clone $GITHUB_REPO $APP_DIR
+    cd $APP_DIR
+    read -p "Repository cloned. Continue with build? (y/N): " CONTINUE
     if [[ ! $CONTINUE =~ ^[Yy]$ ]]; then
         echo "Update cancelled."
         exit 0
