@@ -21,13 +21,11 @@ const DeploymentManagementSystem = () => {
   const [showNewDateModal, setShowNewDateModal] = useState(false);
   const [newDate, setNewDate] = useState('');
   const [salesData, setSalesData] = useState({
-    todayData: '',
-    thisWeekData: '',
-    lastYearData: ''
+    hourlyData: '',
+    weeklyData: ''
   });
   const [parsedSalesData, setParsedSalesData] = useState({
     today: [],
-    thisWeek: [],
     lastYear: []
   });
 
@@ -296,12 +294,29 @@ const DeploymentManagementSystem = () => {
     window.print();
   };
 
-  const parseSalesData = (data) => {
+  const parseHourlySalesData = (data) => {
     if (!data) return [];
     
     const lines = data.split('\n').filter(line => line.trim());
     return lines.map(line => {
-      const parts = line.split('\t');
+      const parts = line.split('\t').map(part => part.trim());
+      return {
+        minute: parts[0] || '',
+        todayForecast: parts[1] || '',
+        todayActual: parts[2] || '',
+        lastYearForecast: parts[3] || '',
+        lastYearActual: parts[4] || '',
+        lastYearVariance: parts[5] || ''
+      };
+    });
+  };
+
+  const parseWeeklySalesData = (data) => {
+    if (!data) return [];
+    
+    const lines = data.split('\n').filter(line => line.trim());
+    return lines.map(line => {
+      const parts = line.split('\t').map(part => part.trim());
       return {
         time: parts[0] || '',
         sales: parts[1] || '',
@@ -312,10 +327,22 @@ const DeploymentManagementSystem = () => {
   };
 
   useEffect(() => {
+    const hourlyParsed = parseHourlySalesData(salesData.hourlyData);
+    const weeklyParsed = parseWeeklySalesData(salesData.weeklyData);
+    
     setParsedSalesData({
-      today: parseSalesData(salesData.todayData),
-      thisWeek: parseSalesData(salesData.thisWeekData),
-      lastYear: parseSalesData(salesData.lastYearData)
+      today: hourlyParsed.map(row => ({
+        time: row.minute,
+        forecast: row.todayForecast,
+        actual: row.todayActual
+      })),
+      lastYear: hourlyParsed.map(row => ({
+        time: row.minute,
+        forecast: row.lastYearForecast,
+        actual: row.lastYearActual,
+        variance: row.lastYearVariance
+      })),
+      weekly: weeklyParsed
     });
   }, [salesData]);
 
@@ -1043,46 +1070,42 @@ const DeploymentManagementSystem = () => {
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales Data Input</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Paste sales data from your POS system. Format: Time, Sales, Target, Variance (tab-separated)
+          Paste hourly sales data from your POS system with columns: Minute, Forecast, Actual, Last Year, Forecast, Actual, Last Year (tab-separated)
         </p>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Today's Data</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hourly Sales Data (Today vs Last Year)</label>
             <textarea
-              value={salesData.todayData}
-              onChange={(e) => setSalesData(prev => ({ ...prev, todayData: e.target.value }))}
-              className="w-full h-32 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="12:00	£150.00	£140.00	+£10.00"
+              value={salesData.hourlyData}
+              onChange={(e) => setSalesData(prev => ({ ...prev, hourlyData: e.target.value }))}
+              className="w-full h-40 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              placeholder="11:00	£120.00	£115.00	£110.00	£108.00	-£2.00"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Format: Minute | Today Forecast | Today Actual | Last Year Forecast | Last Year Actual | Last Year Variance
+            </p>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">This Week Data</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Weekly Summary Data</label>
             <textarea
-              value={salesData.thisWeekData}
-              onChange={(e) => setSalesData(prev => ({ ...prev, thisWeekData: e.target.value }))}
-              className="w-full h-32 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="12:00	£145.00	£140.00	+£5.00"
+              value={salesData.weeklyData}
+              onChange={(e) => setSalesData(prev => ({ ...prev, weeklyData: e.target.value }))}
+              className="w-full h-40 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              placeholder="Monday	£1,450.00	£1,420.00	+£30.00"
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Last Year Data</label>
-            <textarea
-              value={salesData.lastYearData}
-              onChange={(e) => setSalesData(prev => ({ ...prev, lastYearData: e.target.value }))}
-              className="w-full h-32 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="12:00	£130.00	£125.00	+£5.00"
-            />
+            <p className="text-xs text-gray-500 mt-1">
+              Format: Day | Sales | Target | Variance (optional weekly data)
+            </p>
           </div>
         </div>
       </div>
 
-      {(parsedSalesData.today.length > 0 || parsedSalesData.thisWeek.length > 0 || parsedSalesData.lastYear.length > 0) && (
+      {(parsedSalesData.today.length > 0 || parsedSalesData.lastYear.length > 0) && (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">Sales Comparison</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Hourly Sales Comparison - Today vs Last Year</h3>
           </div>
           
           <div className="overflow-x-auto">
@@ -1090,17 +1113,156 @@ const DeploymentManagementSystem = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">This Week</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Year</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today Forecast</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today Actual</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Year Forecast</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Year Actual</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {Array.from(new Set([
-                  ...parsedSalesData.today.map(d => d.time),
-                  ...parsedSalesData.thisWeek.map(d => d.time),
-                  ...parsedSalesData.lastYear.map(d => d.time)
-                ])).sort().map(time => {
+                {parsedSalesData.today.map((todayData, index) => {
+                  const lastYearData = parsedSalesData.lastYear[index];
+                  
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {todayData.time}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {todayData.forecast}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {todayData.actual}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {lastYearData?.forecast || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {lastYearData?.actual || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {lastYearData?.variance || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {parsedSalesData.weekly && parsedSalesData.weekly.length > 0 && (
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800">Weekly Sales Summary</h3>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variance</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {parsedSalesData.weekly.map((weekData, index) => {
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {weekData.time}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {weekData.sales}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {weekData.target}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {weekData.variance}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderReports = () => (
+    <div className="bg-white shadow-sm rounded-lg p-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Reports & Analytics</h3>
+      <p className="text-gray-600">Reports functionality coming soon...</p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">KFC Deployment Management System</h1>
+        
+        {renderNavigation()}
+        
+        {currentPage === 'deployment' && (
+          <>
+            {renderDateSelector()}
+            {renderShiftInfo()}
+            {renderDeploymentForm()}
+            {renderDeploymentTable()}
+          </>
+        )}
+        
+        {currentPage === 'staff' && renderStaffManagement()}
+        {currentPage === 'positions' && renderPositionManagement()}
+        {currentPage === 'sales' && renderSalesData()}
+        {currentPage === 'reports' && renderReports()}
+
+        {/* New Date Modal */}
+        {showNewDateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Create New Date</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowNewDateModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createNewDate}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DeploymentManagementSystem;
                   const todayData = parsedSalesData.today.find(d => d.time === time);
                   const thisWeekData = parsedSalesData.thisWeek.find(d => d.time === time);
                   const lastYearData = parsedSalesData.lastYear.find(d => d.time === time);
