@@ -22,12 +22,12 @@ const DeploymentManagementSystem = () => {
   const [newDate, setNewDate] = useState('');
   const [salesData, setSalesData] = useState({
     todayData: '',
-    lastWeekData: '',
+    thisWeekData: '',
     lastYearData: ''
   });
   const [parsedSalesData, setParsedSalesData] = useState({
     today: [],
-    lastWeek: [],
+    thisWeek: [],
     lastYear: []
   });
 
@@ -314,7 +314,7 @@ const DeploymentManagementSystem = () => {
   useEffect(() => {
     setParsedSalesData({
       today: parseSalesData(salesData.todayData),
-      lastWeek: parseSalesData(salesData.lastWeekData),
+      thisWeek: parseSalesData(salesData.thisWeekData),
       lastYear: parseSalesData(salesData.lastYearData)
     });
   }, [salesData]);
@@ -1058,10 +1058,10 @@ const DeploymentManagementSystem = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Last Week Data</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">This Week Data</label>
             <textarea
-              value={salesData.lastWeekData}
-              onChange={(e) => setSalesData(prev => ({ ...prev, lastWeekData: e.target.value }))}
+              value={salesData.thisWeekData}
+              onChange={(e) => setSalesData(prev => ({ ...prev, thisWeekData: e.target.value }))}
               className="w-full h-32 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
               placeholder="12:00	£145.00	£140.00	+£5.00"
             />
@@ -1080,6 +1080,7 @@ const DeploymentManagementSystem = () => {
       </div>
 
       {(parsedSalesData.today.length > 0 || parsedSalesData.lastWeek.length > 0 || parsedSalesData.lastYear.length > 0) && (
+      {(parsedSalesData.today.length > 0 || parsedSalesData.thisWeek.length > 0 || parsedSalesData.lastYear.length > 0) && (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800">Sales Comparison</h3>
@@ -1091,18 +1092,18 @@ const DeploymentManagementSystem = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Today</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Week</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">This Week</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Year</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {Array.from(new Set([
                   ...parsedSalesData.today.map(d => d.time),
-                  ...parsedSalesData.lastWeek.map(d => d.time),
+                  ...parsedSalesData.thisWeek.map(d => d.time),
                   ...parsedSalesData.lastYear.map(d => d.time)
                 ])).sort().map(time => {
                   const todayData = parsedSalesData.today.find(d => d.time === time);
-                  const lastWeekData = parsedSalesData.lastWeek.find(d => d.time === time);
+                  const thisWeekData = parsedSalesData.thisWeek.find(d => d.time === time);
                   const lastYearData = parsedSalesData.lastYear.find(d => d.time === time);
                   
                   return (
@@ -1114,7 +1115,7 @@ const DeploymentManagementSystem = () => {
                         {todayData ? `${todayData.sales} (${todayData.variance})` : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {lastWeekData ? `${lastWeekData.sales} (${lastWeekData.variance})` : '-'}
+                        {thisWeekData ? `${thisWeekData.sales} (${thisWeekData.variance})` : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {lastYearData ? `${lastYearData.sales} (${lastYearData.variance})` : '-'}
