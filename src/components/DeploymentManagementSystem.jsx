@@ -11,4 +11,9 @@ const DeploymentManagementSystem = () => {
   const [editingDeployment, setEditingDeployment] = useState(null);
   const [newDeployment, setNewDeployment] = useState({
     staff_id: '',
-    start
+    start_time: '',
+    end_time: '',
+    position: '',
+    secondary: '',
+    area: '',
+    cleaning: ''
