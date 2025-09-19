@@ -1079,7 +1079,6 @@ const DeploymentManagementSystem = () => {
         </div>
       </div>
 
-      {(parsedSalesData.today.length > 0 || parsedSalesData.lastWeek.length > 0 || parsedSalesData.lastYear.length > 0) && (
       {(parsedSalesData.today.length > 0 || parsedSalesData.thisWeek.length > 0 || parsedSalesData.lastYear.length > 0) && (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
