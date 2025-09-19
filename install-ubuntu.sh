@@ -108,6 +108,9 @@ else
     mv $TEMP_DIR $APP_DIR
 fi
 
+# Set proper ownership after copying/cloning
+chown -R $APP_USER:$APP_USER $APP_DIR
+chmod -R 755 $APP_DIR
 
 echo -e "${BLUE}📦 Step 8: Installing application dependencies...${NC}"
 cd $APP_DIR
