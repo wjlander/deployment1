@@ -6,6 +6,7 @@ const DeploymentManagementSystem = () => {
   const [currentPage, setCurrentPage] = useState('deployment');
   const [selectedDate, setSelectedDate] = useState('08/09/2025');
   const [newStaff, setNewStaff] = useState({ name: '', is_under_18: false });
+  const [newPosition, setNewPosition] = useState({ name: '', type: 'position' });
   const [newDeployment, setNewDeployment] = useState({
     staff_id: '',
     start_time: '',
@@ -43,7 +44,9 @@ const DeploymentManagementSystem = () => {
     updateShiftInfo,
     deleteShiftInfo,
     duplicateDeployments,
-    getPositionsByType
+    getPositionsByType,
+    addPosition,
+    removePosition
   } = useSupabaseData();
 
   // Get current deployments and shift info
@@ -119,7 +122,7 @@ const DeploymentManagementSystem = () => {
   };
 
   const handleAddDeployment = async () => {
-    if (newDeployment.staff_id && newDeployment.start_time && newDeployment.end_time && newDeployment.position) {
+    if (newDeployment.staff_id && newDeployment.start_time && newDeployment.end_time) {
       try {
         const staffMember = staff.find(s => s.id === newDeployment.staff_id);
         const workHours = calculateWorkHours(newDeployment.start_time, newDeployment.end_time);
@@ -130,7 +133,7 @@ const DeploymentManagementSystem = () => {
           staff_id: newDeployment.staff_id,
           start_time: newDeployment.start_time,
           end_time: newDeployment.end_time,
-          position: newDeployment.position,
+          position: newDeployment.position || '',
           secondary: newDeployment.secondary || '',
           area: newDeployment.area || '',
           cleaning: newDeployment.cleaning || '',
@@ -231,6 +234,32 @@ const DeploymentManagementSystem = () => {
     }
   };
 
+  const handleAddPosition = async () => {
+    if (newPosition.name.trim()) {
+      try {
+        await addPosition({
+          name: newPosition.name.trim(),
+          type: newPosition.type
+        });
+        setNewPosition({ name: '', type: 'position' });
+      } catch (err) {
+        console.error('Error adding position:', err);
+        alert('Failed to add position. Please try again.');
+      }
+    }
+  };
+
+  const handleRemovePosition = async (id) => {
+    if (confirm('Are you sure you want to remove this position?')) {
+      try {
+        await removePosition(id);
+      } catch (err) {
+        console.error('Error removing position:', err);
+        alert('Failed to remove position. Please try again.');
+      }
+    }
+  };
+
   const getStaffName = (staffId) => {
     const staffMember = staff.find(s => s.id === staffId);
     return staffMember ? staffMember.name : 'Unknown';
@@ -299,6 +328,7 @@ const DeploymentManagementSystem = () => {
         {[
           { id: 'deployment', label: 'Deployment', icon: Users },
           { id: 'staff', label: 'Staff Management', icon: Users },
+          { id: 'positions', label: 'Position Management', icon: Settings },
           { id: 'sales', label: 'Sales Data', icon: TrendingUp },
           { id: 'reports', label: 'Reports', icon: FileText }
         ].map(({ id, label, icon: Icon }) => (
@@ -490,7 +520,7 @@ const DeploymentManagementSystem = () => {
             onChange={(e) => setNewDeployment(prev => ({ ...prev, position: e.target.value }))}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="">Select position</option>
+            <option value="">Select position (optional)</option>
             {regularPositions.map(pos => (
               <option key={pos} value={pos}>{pos}</option>
             ))}
@@ -743,6 +773,94 @@ const DeploymentManagementSystem = () => {
     </div>
   );
 
+  const renderPositionManagement = () => (
+    <div className="space-y-6">
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Position</h3>
+        
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-64">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Position Name</label>
+            <input
+              type="text"
+              value={newPosition.name}
+              onChange={(e) => setNewPosition(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter position name"
+            />
+          </div>
+          
+          <div className="min-w-48">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Position Type</label>
+            <select
+              value={newPosition.type}
+              onChange={(e) => setNewPosition(prev => ({ ...prev, type: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="position">Regular Position</option>
+              <option value="pack_position">Pack Position</option>
+              <option value="area">Area</option>
+              <option value="cleaning_area">Cleaning Area</option>
+            </select>
+          </div>
+          
+          <button
+            onClick={handleAddPosition}
+            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Position
+          </button>
+        </div>
+      </div>
+
+      {/* Position Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[
+          { type: 'position', title: 'Regular Positions', color: 'blue' },
+          { type: 'pack_position', title: 'Pack Positions', color: 'green' },
+          { type: 'area', title: 'Areas', color: 'purple' },
+          { type: 'cleaning_area', title: 'Cleaning Areas', color: 'orange' }
+        ].map(({ type, title, color }) => {
+          const positionsOfType = positions.filter(p => p.type === type);
+          
+          return (
+            <div key={type} className="bg-white shadow-sm rounded-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+              </div>
+              
+              <div className="p-4">
+                {positionsOfType.length > 0 ? (
+                  <div className="space-y-2">
+                    {positionsOfType.map((position) => (
+                      <div key={position.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800`}>
+                          {position.name}
+                        </span>
+                        <button
+                          onClick={() => handleRemovePosition(position.id)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Settings className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No {title.toLowerCase()} added yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const renderSalesData = () => (
     <div className="space-y-6">
       <div className="bg-white shadow-sm rounded-lg p-6">
@@ -859,6 +977,7 @@ const DeploymentManagementSystem = () => {
         )}
         
         {currentPage === 'staff' && renderStaffManagement()}
+        {currentPage === 'positions' && renderPositionManagement()}
         {currentPage === 'sales' && renderSalesData()}
         {currentPage === 'reports' && renderReports()}
 
