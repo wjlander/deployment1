@@ -2,7 +2,9 @@
 
 # Deployment Management System Update Script
 # Run as root: sudo ./update-deployment.sh
-
+cd /var/www/deployment-app
+git clone
+cd /~/deployment1
 set -e  # Exit on any error
 
 # Configuration
