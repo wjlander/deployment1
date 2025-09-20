@@ -466,6 +466,10 @@ const DeploymentManagementSystem = ({ onLogout }) => {
 
   const exportToExcel = () => {
     try {
+      // Get current shift info with calculated forecasts
+      const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
+      const forecastTotals = calculateForecastTotals(selectedDate);
+      
       const wb = XLSX.utils.book_new();
       
       // Get day of week from date
@@ -479,9 +483,9 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       
       // Create the data array starting with header information
       const wsData = [
-        ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || '', ''],
-        ['', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', 
-          'Night Shift Forecast', currentShiftInfo.night_shift_forecast || '£0.00', '', '', ''],
+        ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', `£${forecastTotals.total.toFixed(2)}`, 'Weather', currentShiftInfo.weather || '', ''],
+        ['', '', 'Day Shift Forecast', `£${forecastTotals.dayShift.toFixed(2)}`, 
+          'Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', '']
