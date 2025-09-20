@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 
@@ -40,6 +40,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
 
   const [currentPage, setCurrentPage] = useState('deployment');
   const [selectedDate, setSelectedDate] = useState('08/09/2025');
+  const [sortOption, setSortOption] = useState('start-asc');
   const [newStaff, setNewStaff] = useState({ name: '', is_under_18: false });
   const [newPosition, setNewPosition] = useState({ name: '', type: 'position', area_id: '' });
   const [editingPosition, setEditingPosition] = useState(null);
@@ -81,6 +82,76 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     weather: '',
     notes: ''
   };
+
+  // Sort deployments based on selected option
+  const sortDeployments = (deployments, sortOption) => {
+    const sorted = [...deployments];
+    
+    switch (sortOption) {
+      case 'start-asc':
+        return sorted.sort((a, b) => {
+          const timeA = a.start_time.split(':').map(Number);
+          const timeB = b.start_time.split(':').map(Number);
+          const minutesA = timeA[0] * 60 + timeA[1];
+          const minutesB = timeB[0] * 60 + timeB[1];
+          return minutesA - minutesB;
+        });
+      
+      case 'start-desc':
+        return sorted.sort((a, b) => {
+          const timeA = a.start_time.split(':').map(Number);
+          const timeB = b.start_time.split(':').map(Number);
+          const minutesA = timeA[0] * 60 + timeA[1];
+          const minutesB = timeB[0] * 60 + timeB[1];
+          return minutesB - minutesA;
+        });
+      
+      case 'end-asc':
+        return sorted.sort((a, b) => {
+          const timeA = a.end_time.split(':').map(Number);
+          const timeB = b.end_time.split(':').map(Number);
+          let minutesA = timeA[0] * 60 + timeA[1];
+          let minutesB = timeB[0] * 60 + timeB[1];
+          
+          // Handle overnight shifts (end time before start time)
+          const startA = a.start_time.split(':').map(Number);
+          const startB = b.start_time.split(':').map(Number);
+          const startMinutesA = startA[0] * 60 + startA[1];
+          const startMinutesB = startB[0] * 60 + startB[1];
+          
+          if (minutesA < startMinutesA) minutesA += 24 * 60;
+          if (minutesB < startMinutesB) minutesB += 24 * 60;
+          
+          return minutesA - minutesB;
+        });
+      
+      case 'end-desc':
+        return sorted.sort((a, b) => {
+          const timeA = a.end_time.split(':').map(Number);
+          const timeB = b.end_time.split(':').map(Number);
+          let minutesA = timeA[0] * 60 + timeA[1];
+          let minutesB = timeB[0] * 60 + timeB[1];
+          
+          // Handle overnight shifts (end time before start time)
+          const startA = a.start_time.split(':').map(Number);
+          const startB = b.start_time.split(':').map(Number);
+          const startMinutesA = startA[0] * 60 + startA[1];
+          const startMinutesB = startB[0] * 60 + startB[1];
+          
+          if (minutesA < startMinutesA) minutesA += 24 * 60;
+          if (minutesB < startMinutesB) minutesB += 24 * 60;
+          
+          return minutesB - minutesA;
+        });
+      
+      default:
+        return sorted;
+    }
+  };
+
+  // Get sorted deployments by shift type
+  const dayShiftDeployments = sortDeployments(getDeploymentsByShift(selectedDate, 'Day Shift'), sortOption);
+  const nightShiftDeployments = sortDeployments(getDeploymentsByShift(selectedDate, 'Night Shift'), sortOption);
   
   const currentSalesRecords = salesRecordsByDate[selectedDate] || [];
   const forecastTotals = calculateForecastTotals(selectedDate);
