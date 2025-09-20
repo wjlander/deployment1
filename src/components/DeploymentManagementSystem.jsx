@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import DeploymentCard from './DeploymentCard';
 import * as XLSX from 'xlsx';
 
 const DeploymentManagementSystem = ({ onLogout }) => {
