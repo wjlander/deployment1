@@ -109,6 +109,19 @@ const DeploymentManagementSystem = ({ onLogout }) => {
 
   const updateSalesData = async (field, value) => {
     try {
+      const { data, error } = await supabase
+        .from('sales_data')
+        .upsert([{ [field]: value }], { onConflict: 'id' })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      setSalesData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+      
       // Parse and update forecasts when sales data changes
       if (field === 'today_data') {
         const parsed = parseSalesData(value);
@@ -117,37 +130,25 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           const dayForecast = parsed[parsed.length - 1]?.day || '£0.00';
           const nightForecast = parsed[parsed.length - 1]?.night || '£0.00';
           
-          // Update shift info with new forecasts
-          await updateShiftInfo(selectedDate, {
-            forecast: totalForecast,
-            day_shift_forecast: dayForecast,
-            night_shift_forecast: nightForecast
-          });
-        }
-      }
-      
-      setSalesData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+          const updatedShiftInfo = {
             ...currentShiftInfo,
             forecast: totalForecast,
             day_shift_forecast: dayForecast,
             night_shift_forecast: nightForecast
-            };
-            
-            await updateShiftInfo(selectedDate, updatedShiftInfo);
-            
-            // Force local state update
-            setShiftInfoByDate(prev => ({
-              ...prev,
-              [selectedDate]: {
-                ...prev[selectedDate],
-                forecast: totalForecast,
-                day_shift_forecast: dayForecast,
-                night_shift_forecast: nightForecast
-              }
-            }));
+          };
+          
+          await updateShiftInfo(selectedDate, updatedShiftInfo);
+          
+          // Force local state update
+          setShiftInfoByDate(prev => ({
+            ...prev,
+            [selectedDate]: {
+              ...prev[selectedDate],
+              forecast: totalForecast,
+              day_shift_forecast: dayForecast,
+              night_shift_forecast: nightForecast
+            }
+          }));
         }
       }
       
@@ -953,7 +954,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-              {Object.keys(shiftInfoByDate).sort().reverse().map(date => (
+                  </td>
                 </tr>
               ))}
             </tbody>
