@@ -534,7 +534,7 @@ const calculateBreakTime = (staffMember, workHours) => {
       '', 
       selectedDate, 
       '', 'Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, 
-      '', 
+       
       currentShiftInfo.weather || ''
     ]);
     
