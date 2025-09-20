@@ -117,12 +117,12 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           const dayForecast = parsed[parsed.length - 1]?.day || '£0.00';
           const nightForecast = parsed[parsed.length - 1]?.night || '£0.00';
           
-          // Update shift info with new forecasts
-        updateShiftInfo(selectedDate, {
+        await updateShiftInfo(selectedDate, {
           ...currentShiftInfo,
           forecast: totalForecast,
           day_shift_forecast: dayForecast,
           night_shift_forecast: nightForecast
+        });
         });
         }
       }
