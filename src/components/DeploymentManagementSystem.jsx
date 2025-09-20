@@ -338,20 +338,21 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     try {
       const wb = XLSX.utils.book_new();
       
-      // Deployments sheet
+       const workHours = deployment.startTime && deployment.endTime ? 
+         calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
       const deploymentsData = currentDeployments.map(deployment => {
         const staffMember = staff.find(s => s.id === deployment.staffId);
         const workHours = calculateWorkHours(deployment.startTime, deployment.endTime);
         return {
           'Staff Name': staffMember ? staffMember.name : 'Unknown',
-          'Under 18': staffMember ? (staffMember.isUnder18 ? 'Yes' : 'No') : 'Unknown',
-          'Start Time': deployment.startTime,
+         'Start Time': deployment.startTime || '',
+         'End Time': deployment.endTime || '',
           'End Time': deployment.endTime,
           'Work Hours': workHours.toFixed(2),
-          'Position': deployment.position,
-          'Secondary': deployment.secondary || '',
-          'Area': deployment.area || '',
-          'Cleaning': deployment.cleaning || '',
+         'Position': deployment.position || '',
+         'Secondary': deployment.secondary || '',
+         'Area': deployment.area || '',
+         'Cleaning': deployment.cleaning || '',
           'Break Minutes': deployment.breakMinutes || 0
         };
       });
@@ -366,15 +367,17 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         'Day Shift Forecast': currentShiftInfo.dayShiftForecast,
         'Night Shift Forecast': currentShiftInfo.nightShiftForecast,
         'Weather': currentShiftInfo.weather,
-        'Notes': currentShiftInfo.notes
-      }];
-      
-      const ws2 = XLSX.utils.json_to_sheet(shiftInfoData);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Shift Info');
+       'Total Forecast': currentShiftInfo.forecast || '£0.00',
+       'Day Shift Forecast': currentShiftInfo.dayShiftForecast || '£0.00',
+       'Night Shift Forecast': currentShiftInfo.nightShiftForecast || '£0.00',
+       'Weather': currentShiftInfo.weather || '',
+       'Notes': currentShiftInfo.notes || ''
       
       // Summary sheet
       const totalHours = currentDeployments.reduce((sum, d) => {
-        return sum + calculateWorkHours(d.startTime, d.endTime);
+       const workHours = deployment.startTime && deployment.endTime ? 
+         calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
+       return total + workHours;
       }, 0);
       
       const summaryData = [{
