@@ -706,69 +706,69 @@ const DeploymentManagementSystem = ({ onLogout }) => {
 
   const renderShiftInfo = () => (
     <>
-      <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Shift Information - {selectedDate}</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Total Forecast</label>
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
-                £{forecastTotals.total.toFixed(2)}
-              </div>
-              <button
-                onClick={handleSalesModalOpen}
-                className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Edit
-              </button>
+    <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Shift Information - {selectedDate}</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Total Forecast</label>
+          <div className="flex items-center space-x-2">
+            <div className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+              £{forecastTotals.total.toFixed(2)}
             </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Day Shift Forecast</label>
-            <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
-              £{forecastTotals.dayShift.toFixed(2)}
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Night Shift Forecast</label>
-            <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
-              £{forecastTotals.nightShift.toFixed(2)}
-            </div>
+            <button
+              onClick={handleSalesModalOpen}
+              className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Edit
+            </button>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Weather</label>
-            <input
-              type="text"
-              value={currentShiftInfo.weather || ''}
-              onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, weather: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Weather conditions"
-            />
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Day Shift Forecast</label>
+          <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+            £{forecastTotals.dayShift.toFixed(2)}
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              value={currentShiftInfo.notes || ''}
-              onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, notes: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Shift notes and reminders"
-              rows="2"
-            />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Night Shift Forecast</label>
+          <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+            £{forecastTotals.nightShift.toFixed(2)}
           </div>
         </div>
       </div>
 
-      {/* Sales Records Modal */}
-      {showSalesModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Weather</label>
+          <input
+            type="text"
+            value={currentShiftInfo.weather || ''}
+            onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, weather: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Weather conditions"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <textarea
+            value={currentShiftInfo.notes || ''}
+            onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, notes: e.target.value })}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Shift notes and reminders"
+            rows="2"
+          />
+        </div>
+      </div>
+      </div>
+
+    {/* Sales Records Modal */}
+    {showSalesModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Sales Records for {selectedDate}</h3>
@@ -779,65 +779,66 @@ const DeploymentManagementSystem = ({ onLogout }) => {
                   ×
                 </button>
               </div>
-              
-              <div className="space-y-3 mb-4">
-                {tempSalesRecords.map((record, index) => (
-                  <div key={index} className="flex items-center space-x-3">
+              {/* Modal content would go here */}
+            
+            <div className="space-y-3 mb-4">
+              {tempSalesRecords.map((record, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <input
+                    type="time"
+                    value={record.time}
+                    onChange={(e) => handleSalesRecordChange(index, 'time', e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-1">£</span>
                     <input
-                      type="time"
-                      value={record.time}
-                      onChange={(e) => handleSalesRecordChange(index, 'time', e.target.value)}
+                      type="number"
+                      step="0.01"
+                      value={record.forecast}
+                      onChange={(e) => handleSalesRecordChange(index, 'forecast', e.target.value)}
                       className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
                     />
-                    <div className="flex items-center">
-                      <span className="text-gray-500 mr-1">£</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={record.forecast}
-                        onChange={(e) => handleSalesRecordChange(index, 'forecast', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <button
-                      onClick={() => removeSalesRecord(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                ))}
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={addSalesRecord}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Time Slot</span>
-                </button>
-                
-                <div className="flex space-x-3">
                   <button
-                    onClick={() => setShowSalesModal(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                    onClick={() => removeSalesRecord(index)}
+                    className="text-red-600 hover:text-red-800"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={saveSalesRecords}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    Save
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <button
+                onClick={addSalesRecord}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Time Slot</span>
+              </button>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowSalesModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveSalesRecords}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Save
+                </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
     </>
   );
 
