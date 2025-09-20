@@ -269,11 +269,18 @@ export const useSupabaseData = () => {
 
   // Sales records operations
   const updateSalesRecords = async (date, records) => {
+    console.log('Updating sales records for date:', date, 'Records:', records); // Debug log
+    
     // Delete existing records for this date
-    await supabase
+    const { error: deleteError } = await supabase
       .from('sales_records')
       .delete()
       .eq('date', date);
+    
+    if (deleteError) {
+      console.error('Error deleting existing records:', deleteError);
+      throw deleteError;
+    }
     
     // Insert new records
     if (records && records.length > 0) {
@@ -283,12 +290,19 @@ export const useSupabaseData = () => {
         forecast: parseFloat(record.forecast) || 0
       }));
       
+      console.log('Inserting records:', recordsToInsert); // Debug log
+      
       const { data, error } = await supabase
         .from('sales_records')
         .insert(recordsToInsert)
         .select('*');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting records:', error);
+        throw error;
+      }
+      
+      console.log('Successfully inserted records:', data); // Debug log
       
       setSalesRecordsByDate(prev => ({
         ...prev,
@@ -303,11 +317,15 @@ export const useSupabaseData = () => {
         delete updated[date];
         return updated;
       });
+      
+      return [];
     }
   };
 
   const calculateForecastTotals = (date) => {
     const records = salesRecordsByDate[date] || [];
+    
+    console.log('Calculating totals for date:', date, 'Records:', records); // Debug log
     
     let totalForecast = 0;
     let dayShiftForecast = 0;
@@ -317,16 +335,19 @@ export const useSupabaseData = () => {
       const forecast = parseFloat(record.forecast) || 0;
       totalForecast += forecast;
       
-      // Parse time to determine if it's day or night shift
-      const [hours] = record.time.split(':').map(Number);
+      // Parse time to determine if it's day or night shift  
+      const [hours, minutes] = record.time.split(':').map(Number);
+      const timeInMinutes = hours * 60 + minutes;
       
-      // Assuming day shift is 6:00-18:00, night shift is 18:00-6:00
-      if (hours >= 6 && hours < 18) {
+      // Day shift is 10:00-16:00 (600-960 minutes), night shift is 16:00-23:00 (960-1380 minutes)
+      if (timeInMinutes >= 600 && timeInMinutes < 960) {
         dayShiftForecast += forecast;
-      } else {
+      } else if (timeInMinutes >= 960 && timeInMinutes < 1380) {
         nightShiftForecast += forecast;
       }
     });
+    
+    console.log('Calculated totals:', { total: totalForecast, dayShift: dayShiftForecast, nightShift: nightShiftForecast }); // Debug log
     
     return {
       total: totalForecast,

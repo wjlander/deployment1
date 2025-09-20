@@ -114,66 +114,26 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   };
 
   const parseSalesData = (data) => {
-    const lines = data.split('\n').filter(line => line.trim());
-    const parsed = [];
+    if (!data || typeof data !== 'string') return [];
     
-    // Parse time-based forecast data
-    let totalForecast = 0;
-    let dayShiftForecast = 0;
-    let nightShiftForecast = 0;
+    const lines = data.split('\n').filter(line => line.trim() !== '');
+    const records = [];
     
-    lines.forEach(line => {
-      // Parse tab-separated or comma-separated data
-      const parts = line.split(/\t|,/).map(part => part.trim());
-      
-      if (parts.length >= 2) {
-        const minute = parts[0]; // Time in format like "10:00", "10:15", etc.
-        const forecast = parts[1]; // Forecast value
-        
-        // Extract numeric value from forecast (remove £, commas, etc.)
-        const forecastMatch = forecast.match(/[\d,]+\.?\d*/);
-        if (forecastMatch && minute.match(/^\d{1,2}:\d{2}$/)) {
-          const forecastValue = parseFloat(forecastMatch[0].replace(/,/g, ''));
-          const [hours, minutes] = minute.split(':').map(Number);
-          const timeInMinutes = hours * 60 + minutes;
-          
-          // Add to parsed data
-          parsed.push({
-            time: minute,
-            forecast: forecast,
-            value: forecastValue
-          });
-          
-          // Calculate totals based on time ranges
-          // Full day: 10:00 to 23:00 (600 to 1380 minutes)
-          if (timeInMinutes >= 600 && timeInMinutes < 1380) {
-            totalForecast += forecastValue;
-            
-            // Day shift: 10:00 to 16:00 (600 to 960 minutes)
-            if (timeInMinutes >= 600 && timeInMinutes < 960) {
-              dayShiftForecast += forecastValue;
-            }
-            // Night shift: 16:00 to 23:00 (960 to 1380 minutes)
-            else if (timeInMinutes >= 960 && timeInMinutes < 1380) {
-              nightShiftForecast += forecastValue;
-            }
-          }
-        }
+    for (const line of lines) {
+      // Match patterns like "10:00 £1,234.56" or "10:00 1234.56" or "10:00 1234"
+      const match = line.match(/(\d{1,2}:\d{2})\s+£?([\d,]+(?:\.\d{2})?)/);
+      if (match) {
+        const [, time, amount] = match;
+        // Remove commas and convert to number
+        const numericAmount = parseFloat(amount.replace(/,/g, ''));
+        records.push({
+          time,
+          forecast: isNaN(numericAmount) ? 0 : numericAmount
+        });
       }
-    });
-    
-    // Update forecasts if we calculated any
-    if (totalForecast > 0) {
-      updateShiftInfo('forecast', `£${totalForecast.toFixed(2)}`);
-    }
-    if (dayShiftForecast > 0) {
-      updateShiftInfo('dayShiftForecast', `£${dayShiftForecast.toFixed(2)}`);
-    }
-    if (nightShiftForecast > 0) {
-      updateShiftInfo('nightShiftForecast', `£${nightShiftForecast.toFixed(2)}`);
     }
     
-    return parsed;
+    return records;
   };
 
   const updateSalesData = async (field, value) => {
@@ -253,6 +213,56 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       setShowSalesModal(false);
     } catch (error) {
       console.error('Error saving sales records:', error);
+    }
+  };
+
+  const handleSalesDataSave = async () => {
+    try {
+      const parsedRecords = parseSalesData(salesDataInput);
+      console.log('Parsed records:', parsedRecords); // Debug log
+      
+      if (parsedRecords.length > 0) {
+        // Update sales records in database
+        const savedRecords = await updateSalesRecords(selectedDate, parsedRecords);
+        console.log('Saved records:', savedRecords); // Debug log
+        
+        // Calculate totals from the saved records
+        const totals = calculateForecastTotals(selectedDate);
+        console.log('Calculated totals:', totals); // Debug log
+        
+        // Update shift info with calculated totals
+        await updateShiftInfo(selectedDate, {
+          forecast: `£${totals.total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          day_shift_forecast: `£${totals.dayShift.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          night_shift_forecast: `£${totals.nightShift.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          weather: currentShiftInfo.weather || '',
+          notes: currentShiftInfo.notes || ''
+        });
+        
+        console.log('Shift info updated successfully'); // Debug log
+      } else {
+        console.log('No valid records parsed'); // Debug log
+        // Clear sales records if no valid data
+        await updateSalesRecords(selectedDate, []);
+        
+        // Reset forecasts to £0.00
+        await updateShiftInfo(selectedDate, {
+          forecast: '£0.00',
+          day_shift_forecast: '£0.00',
+          night_shift_forecast: '£0.00',
+          weather: currentShiftInfo.weather || '',
+          notes: currentShiftInfo.notes || ''
+        });
+      }
+      
+      setSalesDataInput('');
+      setShowSalesModal(false);
+      
+      // Show success message
+      alert('Sales data updated successfully!');
+    } catch (error) {
+      console.error('Error saving sales data:', error);
+      alert('Error saving sales data: ' + error.message);
     }
   };
 
