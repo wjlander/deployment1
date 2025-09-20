@@ -108,6 +108,55 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     }
   };
 
+  const parseSalesData = (dataText) => {
+    const lines = dataText.split('\n').filter(line => line.trim());
+    const parsed = [];
+    let totalForecast = '';
+    let dayForecast = '';
+    let nightForecast = '';
+    
+    lines.forEach(line => {
+      const parts = line.split('\t').map(part => part.trim());
+      if (parts.length >= 2) {
+        // Look for forecast data in the sales data
+        if (parts[0].toLowerCase().includes('forecast') || parts[0].toLowerCase().includes('total')) {
+          if (parts[1].includes('£') || parts[1].includes('$')) {
+            totalForecast = parts[1];
+          }
+        }
+        if (parts[0].toLowerCase().includes('day') && (parts[0].toLowerCase().includes('forecast') || parts[0].toLowerCase().includes('shift'))) {
+          if (parts[1].includes('£') || parts[1].includes('$')) {
+            dayForecast = parts[1];
+          }
+        }
+        if (parts[0].toLowerCase().includes('night') && (parts[0].toLowerCase().includes('forecast') || parts[0].toLowerCase().includes('shift'))) {
+          if (parts[1].includes('£') || parts[1].includes('$')) {
+            nightForecast = parts[1];
+          }
+        }
+        
+        parsed.push({
+          time: parts[0],
+          value: parts[1],
+          period: parts[2] || '',
+          total: parseFloat(parts[1].replace(/[£$,]/g, '')) || 0
+        });
+      }
+    });
+    
+    // Update shift info forecasts if found in sales data
+    if (totalForecast || dayForecast || nightForecast) {
+      const updates = {};
+      if (totalForecast) updates.forecast = totalForecast;
+      if (dayForecast) updates.dayShiftForecast = dayForecast;
+      if (nightForecast) updates.nightShiftForecast = nightForecast;
+      
+      Object.keys(updates).forEach(key => updateShiftInfo(key, updates[key]));
+    }
+    
+    return parsed;
+  };
+
   const updateSalesData = async (field, value) => {
     try {
       // Parse and update forecasts when sales data changes
@@ -133,6 +182,17 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       }));
     } catch (error) {
       console.error('Error updating sales data:', error);
+    }
+  };
+
+  const handleSalesDataChange = (field, value) => {
+    setSalesData(prev => ({ ...prev, [field]: value }));
+    
+    if (value.trim()) {
+      const parsed = parseSalesData(value);
+      setParsedSalesData(prev => ({ ...prev, [field.replace('Data', '')]: parsed }));
+    } else {
+      setParsedSalesData(prev => ({ ...prev, [field.replace('Data', '')]: [] }));
     }
   };
 
@@ -349,8 +409,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       // Create the data array starting with header information
       const wsData = [
         ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || '', ''],
-        ['', '', 'Day Shift Forecast', currentShiftInfo.dayShiftForecast || '£0.00', 
-          'Night Shift Forecast', currentShiftInfo.nightShiftForecast || '£0.00', '', '', ''],
+        ['', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', 
+          'Night Shift Forecast', currentShiftInfo.night_shift_forecast || '£0.00', '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', '']
@@ -1196,7 +1256,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
             </label>
             <textarea
               value={salesData.hourlyData}
-              onChange={(e) => setSalesData(prev => ({ ...prev, hourlyData: e.target.value }))}
+              onChange={(e) => handleSalesDataChange('hourlyData', e.target.value)}
               className="w-full h-64 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
               placeholder="Paste hourly sales data here (tab-separated)..."
             />
@@ -1208,7 +1268,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
             </label>
             <textarea
               value={salesData.weeklyData}
-              onChange={(e) => setSalesData(prev => ({ ...prev, weeklyData: e.target.value }))}
+              onChange={(e) => handleSalesDataChange('weeklyData', e.target.value)}
               className="w-full h-64 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
               placeholder="Paste weekly sales data here (tab-separated)..."
             />
