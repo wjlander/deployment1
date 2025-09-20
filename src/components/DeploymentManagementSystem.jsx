@@ -1470,3 +1470,5 @@ const DeploymentManagementSystem = ({ onLogout }) => {
 };
 
 export default DeploymentManagementSystem;
+
+export default DeploymentManagementSystem;
