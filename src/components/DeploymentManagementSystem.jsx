@@ -21,6 +21,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   });
   const [showNewDateModal, setShowNewDateModal] = useState(false);
   const [newDate, setNewDate] = useState('');
+  const [showSalesModal, setShowSalesModal] = useState(false);
+  const [tempSalesRecords, setTempSalesRecords] = useState([]);
   const [salesData, setSalesData] = useState({
     hourlyData: '',
     weeklyData: ''
@@ -36,6 +38,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     positions,
     deploymentsByDate,
     shiftInfoByDate,
+    salesRecordsByDate,
     loading,
     error,
     addStaff,
@@ -44,6 +47,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     removeDeployment,
     updateDeployment,
     updateShiftInfo,
+    updateSalesRecords,
+    calculateForecastTotals,
     deleteShiftInfo,
     duplicateDeployments,
     getPositionsByType,
@@ -58,12 +63,12 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   const currentDeployments = deploymentsByDate[selectedDate] || [];
   const currentShiftInfo = shiftInfoByDate[selectedDate] || {
     date: selectedDate,
-    forecast: '£0.00',
-    day_shift_forecast: '£0.00',
-    night_shift_forecast: '£0.00',
     weather: '',
     notes: ''
   };
+  
+  const currentSalesRecords = salesRecordsByDate[selectedDate] || [];
+  const forecastTotals = calculateForecastTotals(selectedDate);
 
   // Get positions by type
   const regularPositions = getPositionsByType('position');
@@ -207,6 +212,47 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       setParsedSalesData(prev => ({ ...prev, [field.replace('Data', '')]: parsed }));
     } else {
       setParsedSalesData(prev => ({ ...prev, [field.replace('Data', '')]: [] }));
+    }
+  };
+
+  const handleSalesModalOpen = () => {
+    // Initialize temp records with current data or default structure
+    if (currentSalesRecords.length > 0) {
+      setTempSalesRecords([...currentSalesRecords]);
+    } else {
+      // Create default time slots
+      const defaultTimes = [];
+      for (let hour = 6; hour < 24; hour++) {
+        defaultTimes.push({
+          time: `${hour.toString().padStart(2, '0')}:00`,
+          forecast: 0
+        });
+      }
+      setTempSalesRecords(defaultTimes);
+    }
+    setShowSalesModal(true);
+  };
+
+  const handleSalesRecordChange = (index, field, value) => {
+    setTempSalesRecords(prev => prev.map((record, i) => 
+      i === index ? { ...record, [field]: value } : record
+    ));
+  };
+
+  const addSalesRecord = () => {
+    setTempSalesRecords(prev => [...prev, { time: '12:00', forecast: 0 }]);
+  };
+
+  const removeSalesRecord = (index) => {
+    setTempSalesRecords(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const saveSalesRecords = async () => {
+    try {
+      await updateSalesRecords(selectedDate, tempSalesRecords);
+      setShowSalesModal(false);
+    } catch (error) {
+      console.error('Error saving sales records:', error);
     }
   };
 
@@ -665,35 +711,31 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Total Forecast</label>
-          <input
-            type="text"
-            value={currentShiftInfo.forecast || ''}
-            onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, forecast: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="£0.00"
-          />
+          <div className="flex items-center space-x-2">
+            <div className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+              £{forecastTotals.total.toFixed(2)}
+            </div>
+            <button
+              onClick={handleSalesModalOpen}
+              className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Edit
+            </button>
+          </div>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Day Shift Forecast</label>
-          <input
-            type="text"
-            value={currentShiftInfo.day_shift_forecast || ''}
-            onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, day_shift_forecast: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="£0.00"
-          />
+          <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+            £{forecastTotals.dayShift.toFixed(2)}
+          </div>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Night Shift Forecast</label>
-          <input
-            type="text"
-            value={currentShiftInfo.night_shift_forecast || ''}
-            onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, night_shift_forecast: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="£0.00"
-          />
+          <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700">
+            £{forecastTotals.nightShift.toFixed(2)}
+          </div>
         </div>
       </div>
 
@@ -721,6 +763,82 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         </div>
       </div>
     </div>
+    
+    {/* Sales Records Modal */}
+    {showSalesModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Edit Sales Forecast - {selectedDate}
+              </h3>
+              <button
+                onClick={() => setShowSalesModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-3 mb-4">
+              {tempSalesRecords.map((record, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <input
+                    type="time"
+                    value={record.time}
+                    onChange={(e) => handleSalesRecordChange(index, 'time', e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-1">£</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={record.forecast}
+                      onChange={(e) => handleSalesRecordChange(index, 'forecast', e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeSalesRecord(index)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <button
+                onClick={addSalesRecord}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Time Slot</span>
+              </button>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowSalesModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveSalesRecords}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
   );
 
   const renderDeploymentForm = () => (
@@ -1446,9 +1564,9 @@ const DeploymentManagementSystem = ({ onLogout }) => {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                 <input
-                 onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, notes: e.target.value })}
+                  type="date"
                   value={newDate}
-                 onChange={(e) => updateShiftInfo(selectedDate, { ...currentShiftInfo, weather: e.target.value })}
+                  onChange={(e) => setNewDate(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
