@@ -720,7 +720,7 @@ const calculateBreakTime = (staffMember, workHours) => {
           <button
             onClick={() => setCurrentPage('repots')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              currentPage === 'reports'
+              currentPage === 'Reports'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
