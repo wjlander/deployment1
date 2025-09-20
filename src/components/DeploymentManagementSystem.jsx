@@ -115,10 +115,10 @@ const calculateBreakTime = (staffMember, workHours) => {
 
     // Over 18: standard break rules
     if (workHours >= 6) {
-      return 0;
+      return 30;
     } else if (workHours >= 6) {
       if (workHours >= 4.5) {
-        return 30;
+        return 15;
       }
       return 0;
     } else {
