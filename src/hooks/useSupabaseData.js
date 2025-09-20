@@ -7,6 +7,7 @@ export const useSupabaseData = () => {
   const [deploymentsByDate, setDeploymentsByDate] = useState({});
   const [shiftInfoByDate, setShiftInfoByDate] = useState({});
   const [salesRecordsByDate, setSalesRecordsByDate] = useState({});
+  const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,7 +24,8 @@ export const useSupabaseData = () => {
         loadPositions(),
         loadDeployments(),
         loadShiftInfo(),
-        loadSalesRecords()
+        loadSalesRecords(),
+        loadTargets()
       ]);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -116,6 +118,17 @@ export const useSupabaseData = () => {
     });
     
     setSalesRecordsByDate(grouped);
+  };
+
+  const loadTargets = async () => {
+    const { data, error } = await supabase
+      .from('targets')
+      .select('*')
+      .eq('is_active', true)
+      .order('priority');
+    
+    if (error) throw error;
+    setTargets(data || []);
   };
 
   // Staff operations
@@ -428,7 +441,7 @@ export const useSupabaseData = () => {
       position: d.position,
       secondary: d.secondary || '',
       area: d.area || '',
-      cleaning: d.cleaning || '',
+      closing: d.closing || '',
       break_minutes: d.break_minutes || 0
     }));
     
@@ -466,6 +479,45 @@ export const useSupabaseData = () => {
     return data;
   };
 
+  // Target operations
+  const addTarget = async (targetData) => {
+    const { data, error } = await supabase
+      .from('targets')
+      .insert([targetData])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    setTargets(prev => [...prev, data].sort((a, b) => a.priority - b.priority));
+    return data;
+  };
+
+  const updateTarget = async (id, updates) => {
+    const { data, error } = await supabase
+      .from('targets')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    setTargets(prev => prev.map(t => t.id === id ? data : t).sort((a, b) => a.priority - b.priority));
+    return data;
+  };
+
+  const removeTarget = async (id) => {
+    const { error } = await supabase
+      .from('targets')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+    setTargets(prev => prev.filter(t => t.id !== id));
+  };
+
   return {
     // Data
     staff,
@@ -473,6 +525,7 @@ export const useSupabaseData = () => {
     deploymentsByDate,
     shiftInfoByDate,
     salesRecordsByDate,
+    targets,
     loading,
     error,
     
@@ -501,6 +554,12 @@ export const useSupabaseData = () => {
     getPositionsByType,
     getPositionsWithAreas,
     getAreaPositions,
+    
+    // Target operations
+    addTarget,
+    updateTarget,
+    removeTarget,
+    loadTargets,
     
     // Utility
     loadAllData

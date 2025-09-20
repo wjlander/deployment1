@@ -17,11 +17,12 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     position: '',
     secondary: '',
     area: '',
-    cleaning: ''
+    closing: ''
   });
   const [showNewDateModal, setShowNewDateModal] = useState(false);
   const [newDate, setNewDate] = useState('');
   const [showSalesModal, setShowSalesModal] = useState(false);
+  const [showTargetsModal, setShowTargetsModal] = useState(false);
   const [tempSalesRecords, setTempSalesRecords] = useState([]);
   const [salesData, setSalesData] = useState({
     hourlyData: '',
@@ -32,6 +33,12 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     lastYear: []
   });
 
+  const [newTarget, setNewTarget] = useState({
+    name: '',
+    value: '',
+    priority: 0
+  });
+
   // Use Supabase hook
   const {
     staff,
@@ -39,6 +46,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     deploymentsByDate,
     shiftInfoByDate,
     salesRecordsByDate,
+    targets,
     loading,
     error,
     addStaff,
@@ -56,7 +64,11 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     removePosition,
     updatePosition,
     getPositionsWithAreas,
-    getAreaPositions
+    getAreaPositions,
+    addTarget,
+    updateTarget,
+    removeTarget,
+    loadTargets
   } = useSupabaseData();
 
   // Get current deployments and shift info
@@ -75,6 +87,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   const packPositions = getPositionsByType('pack_position');
   const areas = getPositionsByType('area');
   const cleaningAreas = getPositionsByType('cleaning_area');
+  const closingAreas = getPositionsByType('closing_area');
   const secondaryPositions = [...regularPositions, ...packPositions];
 
   const calculateWorkHours = (startTime, endTime) => {
@@ -91,54 +104,28 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     return end - start;
   };
 
-  const calculateBreakTime = (staffMember, workHours) => {
-    // BREAK LOGIC RULES - Edit these conditions as needed:
-    
-    // Rule 1: Under 18 staff always get 30 minutes break
-    if (staffMember.isUnder18) {
-      return 30;
-    }
-    
-    // Rule 2: 6+ hours = 30 minute break
-    if (workHours >= 6) {
-      return 30;
-    // Rule 3: 4.5-6 hours = 15 minute break  
-    } else if (workHours >= 4.5) {
-      return 15;
-    }
-    
-    // Rule 4: Less than 4.5 hours = no break
-    return 0;
-    
-    /* EXAMPLE ALTERNATIVE RULES YOU COULD USE:
-    
-    // More generous breaks:
-    if (staffMember.isUnder18) return 30;
-    if (workHours >= 8) return 45;      // 8+ hours = 45 min
-    if (workHours >= 6) return 30;      // 6-8 hours = 30 min
-    if (workHours >= 4) return 15;      // 4-6 hours = 15 min
-    return 0;
-    
-    // Stricter breaks:
-    if (staffMember.isUnder18) return 30;
-    if (workHours >= 7) return 30;      // Only 7+ hours get 30 min
-    if (workHours >= 5) return 15;      // 5-7 hours get 15 min
-    return 0;
-    
-    // Custom rules based on position:
-    if (staffMember.isUnder18) return 30;
-    if (workHours >= 6) {
-      // Kitchen staff get longer breaks
-      if (['Cook', 'Cook2', 'Burgers', 'Fries', 'Chick'].includes(position)) {
-        return 45;
+const calculateBreakTime = (staffMember, workHours) => {
+    if (staffMember.is_under_18) {
+      // Under 18: only get break if working 4.5+ hours
+      if (workHours >= 4.5) {
+        return 30;
       }
-      return 30;
+      return 0;
     }
-    if (workHours >= 4.5) return 15;
-    return 0;
-    
-    */
+
+    // Over 18: standard break rules
+    if (workHours >= 6) {
+      return 0;
+    } else if (workHours >= 6) {
+      if (workHours >= 4.5) {
+        return 30;
+      }
+      return 0;
+    } else {
+      return 0;
+    }
   };
+
 
   const parseSalesData = (data) => {
     if (!data || typeof data !== 'string') return [];
@@ -334,7 +321,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           position: newDeployment.position || '',
           secondary: newDeployment.secondary || '',
           area: newDeployment.area || '',
-          cleaning: newDeployment.cleaning || '',
+          closing: newDeployment.closing || '',
           break_minutes: breakTime
         });
         
@@ -345,7 +332,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           position: '',
           secondary: '',
           area: '',
-          cleaning: ''
+          closing: ''
         });
       } catch (err) {
         console.error('Error adding deployment:', err);
@@ -482,6 +469,39 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     }
   };
 
+  const handleAddTarget = async () => {
+    if (!newTarget.name.trim()) return;
+    
+    try {
+      await addTarget({
+        name: newTarget.name.trim(),
+        value: newTarget.value.trim(),
+        priority: newTarget.priority || targets.length,
+        is_active: true
+      });
+      
+      setNewTarget({ name: '', value: '', priority: 0 });
+    } catch (error) {
+      console.error('Error adding target:', error);
+    }
+  };
+
+  const handleUpdateTarget = async (id, updates) => {
+    try {
+      await updateTarget(id, updates);
+    } catch (error) {
+      console.error('Error updating target:', error);
+    }
+  };
+
+  const handleRemoveTarget = async (id) => {
+    try {
+      await removeTarget(id);
+    } catch (error) {
+      console.error('Error removing target:', error);
+    }
+  };
+
   const getStaffName = (staffId) => {
     const staffMember = staff.find(s => s.id === staffId);
     return staffMember ? staffMember.name : 'Unknown';
@@ -515,7 +535,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           'Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
-        ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', '']
+        ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Closing', 'Break Minutes', '']
       ];
       
       // Add deployment data
@@ -532,7 +552,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           workHours.toFixed(2),
           deployment.position || '',
           deployment.secondary || '',
-          deployment.cleaning || '',
+          deployment.closing || '',
           deployment.break_minutes || 0,
           ''
         ]);
@@ -558,7 +578,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         { wch: 12 }, // D - Work Hours
         { wch: 15 }, // E - Position
         { wch: 15 }, // F - Secondary
-        { wch: 15 }, // G - Cleaning
+        { wch: 15 }, // G - Closing
         { wch: 15 }, // H - Break Minutes
         { wch: 10 }  // I - Extra column
       ];
@@ -663,26 +683,63 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   const renderNavigation = () => (
     <nav className="bg-white shadow-sm rounded-lg p-4 mb-6">
       <div className="flex flex-wrap gap-2">
-        {[
-          { id: 'deployment', label: 'Deployment', icon: Users },
-          { id: 'staff', label: 'Staff Management', icon: Users },
-          { id: 'positions', label: 'Position Management', icon: Settings },
-          { id: 'sales', label: 'Sales Data', icon: TrendingUp },
-          { id: 'reports', label: 'Reports', icon: FileText }
-        ].map(({ id, label, icon: Icon }) => (
+        <nav className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
           <button
-            key={id}
-            onClick={() => setCurrentPage(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              currentPage === id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            onClick={() => setCurrentPage('deployment')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentPage === 'deployment'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <Icon className="w-4 h-4" />
-            {label}
+            <Calendar className="w-4 h-4 inline mr-2" />
+            Deployment
           </button>
-        ))}
+          <button
+            onClick={() => setCurrentPage('staff')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentPage === 'staff'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Users className="w-4 h-4 inline mr-2" />
+            Staff Management
+          </button>
+          <button
+            onClick={() => setCurrentPage('sales')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentPage === 'sales'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4 inline mr-2" />
+            Sales Data
+          </button>
+          <button
+            onClick={() => setCurrentPage('reports')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              currentPage === 'reports'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            <FileText className="w-4 h-4 inline mr-2" />
+            Reports
+          </button>
+          <button
+            onClick={() => setCurrentPage('targets')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentPage === 'targets'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Settings className="w-4 h-4 inline mr-2" />
+            Targets
+          </button>
+        </nav>
       </div>
     </nav>
   );
@@ -780,6 +837,23 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           </div>
         </div>
       </div>
+
+                {/* Targets Display */}
+                {targets.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <h3 className="text-lg font-semibold text-yellow-800 mb-3">Today's Targets</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {targets.map(target => (
+                        <div key={target.id} className="bg-white rounded-lg p-3 border border-yellow-300">
+                          <div className="font-medium text-yellow-900">{target.name}</div>
+                          {target.value && (
+                            <div className="text-sm text-yellow-700 mt-1">{target.value}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -959,9 +1033,9 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           <select
             value={newDeployment.area}
             onChange={(e) => setNewDeployment(prev => ({ ...prev, area: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">Select area</option>
+            <option value="">Select Area</option>
             {areas.map(area => (
               <option key={area} value={area}>{area}</option>
             ))}
@@ -969,14 +1043,14 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cleaning Area</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Closing Area</label>
           <select
-            value={newDeployment.cleaning}
-            onChange={(e) => setNewDeployment(prev => ({ ...prev, cleaning: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={newDeployment.closing}
+            onChange={(e) => setNewDeployment(prev => ({ ...prev, closing: e.target.value }))}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">Select cleaning area</option>
-            {cleaningAreas.map(area => (
+            <option value="">Select Closing Area</option>
+            {closingAreas.map(area => (
               <option key={area} value={area}>{area}</option>
             ))}
           </select>
@@ -1015,8 +1089,9 @@ const DeploymentManagementSystem = ({ onLogout }) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Secondary</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cleaning</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Closing</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -1047,107 +1122,19 @@ const DeploymentManagementSystem = ({ onLogout }) => {
                       {workHours.toFixed(1)} hours
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {editingDeployment === deployment.id ? (
-                      <select
-                        defaultValue={deployment.position || ''}
-                        onChange={(e) => handleUpdateDeployment(deployment.id, { position: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                        autoFocus
-                      >
-                        <option value="">Select position</option>
-                        {regularPositions.map(pos => (
-                          <option key={pos} value={pos}>{pos}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {deployment.position || 'Not set'}
-                        </span>
-                        <button
-                          onClick={() => setEditingDeployment(deployment.id)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {editingDeployment === deployment.id ? (
-                      <select
-                        defaultValue={deployment.secondary || ''}
-                        onChange={(e) => handleUpdateDeployment(deployment.id, { secondary: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">Select secondary</option>
-                        {secondaryPositions.map(pos => (
-                          <option key={pos} value={pos}>{pos}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span>{deployment.secondary || '-'}</span>
-                        <button
-                          onClick={() => setEditingDeployment(deployment.id)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {deployment.area || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {editingDeployment === deployment.id ? (
-                      <select
-                        defaultValue={deployment.cleaning || ''}
-                        onChange={(e) => handleUpdateDeployment(deployment.id, { cleaning: e.target.value })}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">Select cleaning area</option>
-                        {cleaningAreas.map(area => (
-                          <option key={area} value={area}>{area}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span>{deployment.cleaning || '-'}</span>
-                        <button
-                          onClick={() => setEditingDeployment(deployment.id)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <Clock className="w-4 h-4 mr-1 text-gray-400" />
-                      {deployment.break_minutes || 0}min
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex gap-2 justify-end">
-                      {editingDeployment === deployment.id && (
-                        <button
-                          onClick={() => setEditingDeployment(null)}
-                          className="text-gray-600 hover:text-gray-900 transition-colors"
-                        >
-                          <span className="text-xs">Done</span>
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleRemoveDeployment(deployment.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{deployment.position}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{deployment.secondary || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{deployment.area || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{deployment.closing || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{deployment.break_minutes || 0} mins</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{workHours.toFixed(1)}h</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => handleRemoveDeployment(deployment.id)}
+                      className="text-red-600 hover:text-red-900 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               );
@@ -1566,6 +1553,83 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     </div>
   );
 
+  const renderReportsPage = () => {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Reports</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Staff Hours Report */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Staff Hours Report</h3>
+              <p className="text-gray-600 mb-4">Generate detailed reports of staff working hours by date range.</p>
+              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Position Coverage Report */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Position Coverage</h3>
+              <p className="text-gray-600 mb-4">Analyze position coverage and identify gaps in scheduling.</p>
+              <button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Sales vs Forecast Report */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Sales vs Forecast</h3>
+              <p className="text-gray-600 mb-4">Compare actual sales performance against forecasts.</p>
+              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Labor Cost Analysis */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Labor Cost Analysis</h3>
+              <p className="text-gray-600 mb-4">Analyze labor costs and efficiency metrics.</p>
+              <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Under 18 Compliance */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Under 18 Compliance</h3>
+              <p className="text-gray-600 mb-4">Monitor compliance with under 18 working hour regulations.</p>
+              <button className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Custom Report Builder */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Custom Report Builder</h3>
+              <p className="text-gray-600 mb-4">Build custom reports with your own criteria and filters.</p>
+              <button className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Build Report
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-lg font-semibold text-blue-800 mb-2">Report Features</h4>
+            <ul className="text-blue-700 space-y-1">
+              <li>• Export to Excel, PDF, or CSV formats</li>
+              <li>• Schedule automated report generation</li>
+              <li>• Email reports to management team</li>
+              <li>• Historical data comparison</li>
+              <li>• Interactive charts and graphs</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Main render
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -1595,7 +1659,80 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         {currentPage === 'staff' && renderStaffManagement()}
         {currentPage === 'positions' && renderPositionManagement()}
         {currentPage === 'sales' && renderSalesData()}
-        {currentPage === 'reports' && renderReports()}
+        {currentPage === 'reports' && renderReportsPage()}
+
+          {/* Targets Management Page */}
+          {currentPage === 'targets' && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Target Management</h2>
+                <p className="text-gray-600">Manage targets that appear above shift notes</p>
+              </div>
+
+              {/* Add New Target */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Target</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Target Name</label>
+                    <input
+                      type="text"
+                      value={newTarget.name}
+                      onChange={(e) => setNewTarget(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Drive Thru Time"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Target Value</label>
+                    <input
+                      type="text"
+                      value={newTarget.value}
+                      onChange={(e) => setNewTarget(prev => ({ ...prev, value: e.target.value }))}
+                      placeholder="e.g., Under 90 seconds"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <input
+                      type="number"
+                      value={newTarget.priority}
+                      onChange={(e) => setNewTarget(prev => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddTarget}
+                  className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Target
+                </button>
+              </div>
+
+              {/* Targets List */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800">Current Targets</h3>
+                {targets.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No targets configured yet. Add your first target above.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {targets.map(target => (
+                      <TargetItem
+                        key={target.id}
+                        target={target}
+                        onUpdate={handleUpdateTarget}
+                        onRemove={handleRemoveTarget}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         {/* New Date Modal */}
         {showNewDateModal && (
@@ -1630,6 +1767,104 @@ const DeploymentManagementSystem = ({ onLogout }) => {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Target Item Component
+const TargetItem = ({ target, onUpdate, onRemove }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    name: target.name,
+    value: target.value,
+    priority: target.priority
+  });
+
+  const handleSave = () => {
+    onUpdate(target.id, editData);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditData({
+      name: target.name,
+      value: target.value,
+      priority: target.priority
+    });
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={editData.name}
+              onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+            <input
+              type="text"
+              value={editData.value}
+              onChange={(e) => setEditData(prev => ({ ...prev, value: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <input
+              type="number"
+              value={editData.priority}
+              onChange={(e) => setEditData(prev => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSave}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleCancel}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+      <div>
+        <h4 className="font-medium text-gray-900">{target.name}</h4>
+        {target.value && <p className="text-sm text-gray-600">{target.value}</p>}
+        <p className="text-xs text-gray-500">Priority: {target.priority}</p>
+      </div>
+      <div className="flex space-x-2">
+        <button
+          onClick={() => setIsEditing(true)}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => onRemove(target.id)}
+          className="text-red-600 hover:text-red-800"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
