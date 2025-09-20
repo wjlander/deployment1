@@ -927,16 +927,16 @@ const calculateBreakTime = (staffMember, workHours) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+            <h2 className="text-red-800 font-semibold mb-2">Error Loading Data</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={loadAllData}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+            >
+              Try Again
+            </button>
           </div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Retry
-          </button>
         </div>
       </div>
     );
