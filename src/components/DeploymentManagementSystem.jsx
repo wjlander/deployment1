@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut, Eye, EyeOff, X, FileSpreadsheet } from 'lucide-react';
+import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut, Loader2 } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabaseData';
-import * as XLSX from 'xlsx';
 
 const DeploymentManagementSystem = ({ onLogout }) => {
   const [currentPage, setCurrentPage] = useState('deployment');
@@ -1012,6 +1011,13 @@ const DeploymentManagementSystem = ({ onLogout }) => {
                 <option value="">No area assignment</option>
                 {positions.filter(p => p.type === 'area').map(area => (
                   <option key={area.id} value={area.id}>{area.name}</option>
+              <button
+                onClick={exportToExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export Excel
+              </button>
                 ))}
               </select>
             </div>
