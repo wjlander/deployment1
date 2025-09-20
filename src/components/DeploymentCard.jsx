@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Edit2, Save, X, Clock, User, MapPin, Broom } from 'lucide-react';
+import { Trash2, Edit2, Save, X, Clock, User, MapPin, Chrome as Broom } from 'lucide-react';
 
 const DeploymentCard = ({ deployment, onRemove, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
