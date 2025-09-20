@@ -374,10 +374,10 @@ const DeploymentManagementSystem = ({ onLogout }) => {
        'Notes': currentShiftInfo.notes || ''
       
       // Summary sheet
-      const totalHours = currentDeployments.reduce((sum, d) => {
-       const workHours = deployment.startTime && deployment.endTime ? 
-         calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
-       return total + workHours;
+      const totalHours = currentDeployments.reduce((sum, deployment) => {
+        const workHours = deployment.startTime && deployment.endTime ? 
+          calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
+        return sum + workHours;
       }, 0);
       
       const summaryData = [{
