@@ -154,9 +154,11 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   const handleRemoveStaff = async (id) => {
     if (confirm('Are you sure you want to remove this staff member? This will also remove all their deployments.')) {
       try {
-        wsData.push(['', '', '', '', '', '', '', '', '']);
-        wsData.push(['', '', '', '', '', '', '', '', '']);
+        await removeStaff(id);
+      } catch (err) {
         console.error('Error removing staff:', err);
+        alert('Error removing staff member. Please try again.');
+      }
         alert('Failed to remove staff member. Please try again.');
       }
           'Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', ''
