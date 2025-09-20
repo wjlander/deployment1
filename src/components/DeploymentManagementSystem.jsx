@@ -91,54 +91,28 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     return end - start;
   };
 
-  const calculateBreakTime = (staffMember, workHours) => {
-    // BREAK LOGIC RULES - Edit these conditions as needed:
-    
-    // Rule 1: Under 18 staff always get 30 minutes break
-    if (staffMember.isUnder18) {
-      return 30;
-    }
-    
-    // Rule 2: 6+ hours = 30 minute break
-    if (workHours >= 6) {
-      return 30;
-    // Rule 3: 4.5-6 hours = 15 minute break  
-    } else if (workHours >= 4.5) {
-      return 15;
-    }
-    
-    // Rule 4: Less than 4.5 hours = no break
-    return 0;
-    
-    /* EXAMPLE ALTERNATIVE RULES YOU COULD USE:
-    
-    // More generous breaks:
-    if (staffMember.isUnder18) return 30;
-    if (workHours >= 8) return 45;      // 8+ hours = 45 min
-    if (workHours >= 6) return 30;      // 6-8 hours = 30 min
-    if (workHours >= 4) return 15;      // 4-6 hours = 15 min
-    return 0;
-    
-    // Stricter breaks:
-    if (staffMember.isUnder18) return 30;
-    if (workHours >= 7) return 30;      // Only 7+ hours get 30 min
-    if (workHours >= 5) return 15;      // 5-7 hours get 15 min
-    return 0;
-    
-    // Custom rules based on position:
-    if (staffMember.isUnder18) return 30;
-    if (workHours >= 6) {
-      // Kitchen staff get longer breaks
-      if (['Cook', 'Cook2', 'Burgers', 'Fries', 'Chick'].includes(position)) {
-        return 45;
+const calculateBreakTime = (staffMember, workHours) => {
+    if (staffMember.is_under_18) {
+      // Under 18: only get break if working 4.5+ hours
+      if (workHours >= 4.5) {
+        return 30;
       }
-      return 30;
+      return 0;
     }
-    if (workHours >= 4.5) return 15;
-    return 0;
-    
-    */
+
+    // Over 18: standard break rules
+    if (workHours >= 6) {
+      return 0;
+    } else if (workHours >= 6) {
+      if (workHours >= 4.5) {
+        return 30;
+      }
+      return 0;
+    } else {
+      return 0;
+    }
   };
+
 
   const parseSalesData = (data) => {
     if (!data || typeof data !== 'string') return [];
