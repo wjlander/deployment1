@@ -84,6 +84,15 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     notes: ''
   };
 
+  // Sort deployments by start time
+  const sortedDeployments = [...currentDeployments].sort((a, b) => {
+    const timeA = a.start_time.split(':').map(Number);
+    const timeB = b.start_time.split(':').map(Number);
+    const minutesA = timeA[0] * 60 + timeA[1];
+    const minutesB = timeB[0] * 60 + timeB[1];
+    return minutesA - minutesB;
+  });
+
   // Sort deployments based on selected option
   const sortDeployments = (deployments, sortOption) => {
     const sorted = [...deployments];
@@ -694,81 +703,136 @@ const calculateBreakTime = (staffMember, workHours) => {
     window.print();
   };
 
-  const exportToExcel = () => {
-    try {
-      const deployments = deploymentsByDate[selectedDate] || [];
-      const shiftInfo = shiftInfoByDate[selectedDate];
-      
-      // Group deployments by shift type
-      const dayShiftDeployments = deployments.filter(d => d.shift_type === 'Day Shift');
-      const nightShiftDeployments = deployments.filter(d => d.shift_type === 'Night Shift');
-      
-      const wb = XLSX.utils.book_new();
-      
-      // Function to create deployment data with conditional columns
-      const createDeploymentData = (deployments, includeClosing = true) => {
-        return deployments.map(deployment => {
-          const staffMember = staff.find(s => s.id === deployment.staff_id);
-          const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
-          
-          const baseData = {
-            'Staff Name': staffMember?.name || 'Unknown',
-            'Start Time': deployment.start_time,
-            'End Time': deployment.end_time,
-            'Work Hours': workHours.toFixed(1),
-            'Position': deployment.position,
-            'Secondary': deployment.secondary || '',
-            'Area': deployment.area || '',
-            'Break (mins)': deployment.break_minutes || 0
-          };
-          
-          // Only include closing position for night shift
-          if (includeClosing) {
-            baseData['Closing Position'] = deployment.closing || '';
-          }
-          
-          return baseData;
-        });
-      };
-      
-      // Create separate sheets for day and night shifts if both exist
-      if (dayShiftDeployments.length > 0) {
-        const dayShiftData = createDeploymentData(dayShiftDeployments, false); // Hide closing column
-        const dayShiftWS = XLSX.utils.json_to_sheet(dayShiftData);
-        XLSX.utils.book_append_sheet(wb, dayShiftWS, 'Day Shift');
-      }
-      
-      if (nightShiftDeployments.length > 0) {
-        const nightShiftData = createDeploymentData(nightShiftDeployments, true); // Include closing column
-        const nightShiftWS = XLSX.utils.json_to_sheet(nightShiftData);
-        XLSX.utils.book_append_sheet(wb, nightShiftWS, 'Night Shift');
-      }
-      
-      // If only one shift type exists, create a single sheet
-      if (dayShiftDeployments.length === 0 && nightShiftDeployments.length === 0) {
-        const emptyWS = XLSX.utils.json_to_sheet([]);
-        XLSX.utils.book_append_sheet(wb, emptyWS, 'No Deployments');
-      }
-      
-      // Add shift info sheet if available
-      if (shiftInfo) {
-        const shiftInfoData = [
-          { 'Field': 'Date', 'Value': shiftInfo.date },
-          { 'Field': 'Forecast', 'Value': shiftInfo.forecast },
-          { 'Field': 'Day Shift Forecast', 'Value': shiftInfo.day_shift_forecast },
-          { 'Field': 'Night Shift Forecast', 'Value': shiftInfo.night_shift_forecast },
-          { 'Field': 'Weather', 'Value': shiftInfo.weather },
-          { 'Field': 'Notes', 'Value': shiftInfo.notes }
-        ];
-        
-        const shiftInfoWS = XLSX.utils.json_to_sheet(shiftInfoData);
-        XLSX.utils.book_append_sheet(wb, shiftInfoWS, 'Shift Info');
-      }
-      
-      XLSX.writeFile(wb, `deployment-${selectedDate.replace(/\//g, '-')}.xlsx`);
-    } catch (err) {
-      setError('Failed to export to Excel: ' + err.message);
+  const exportToExcel = (exportType = 'all') => {
+    const currentDeployments = deploymentsByDate[selectedDate] || [];
+    const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
+    const forecastTotals = calculateForecastTotals(selectedDate);
+    
+    if (currentDeployments.length === 0) {
+      alert('No deployments to export for this date');
+      return;
     }
+
+    // Filter deployments based on export type
+    let deploymentsToExport = currentDeployments;
+    if (exportType === 'day') {
+      deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Day Shift');
+    } else if (exportType === 'night') {
+      deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Night Shift');
+    }
+
+    // Sort deployments by start time
+    deploymentsToExport = [...deploymentsToExport].sort((a, b) => {
+      const timeA = a.start_time.split(':').map(Number);
+      const timeB = b.start_time.split(':').map(Number);
+      const minutesA = timeA[0] * 60 + timeA[1];
+      const minutesB = timeB[0] * 60 + timeB[1];
+      return minutesA - minutesB;
+    });
+
+    // Get day name from date
+    const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
+    const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
+    
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws_data = [];
+
+    // Header section - Row 1
+    ws_data.push(['Day', '', 'Date', '', 'Total Forecast', `£${forecastTotals.total.toFixed(2)}`, 'Weather']);
+    
+    // Header section - Row 2  
+    ws_data.push([
+      dayName, 
+      '', 
+      selectedDate, 
+      '', 'Day Shift Forecast', `£${forecastTotals.dayShift.toFixed(2)}`, 
+       
+      currentShiftInfo.weather || ''
+    ]);
+    
+    // Header section - Row 3
+    ws_data.push(['', '', '', '','Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, '', '']);
+    
+    // Empty row
+    ws_data.push(['']);
+    
+    // Column headers
+    ws_data.push([
+      'Staff Name',
+      'Start Time',
+      'End Time', 
+      'Work Hours',
+      'Position',
+      'Secondary',
+      'Closing',
+      'Break Minutes'
+    ]);
+    
+    // Staff deployment data
+    deploymentsToExport.forEach(deployment => {
+      const staffMember = staff.find(s => s.id === deployment.staff_id);
+      const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
+      
+      ws_data.push([
+        staffMember ? staffMember.name : 'Unknown',
+        deployment.start_time,
+        deployment.end_time,
+        workHours.toFixed(2),
+        deployment.position,
+        deployment.secondary || '',
+        deployment.closing || '',
+        deployment.break_minutes || 0
+      ]);
+    });
+
+    // Empty row before notes
+    ws_data.push(['']);
+    
+    // Add targets if they exist
+    if (targets && targets.length > 0) {
+      ws_data.push(['Targets:']);
+      targets.forEach(target => {
+        ws_data.push(['', `${target.name}: ${target.value}`]);
+      });
+      ws_data.push(['']); // Empty row after targets
+    }
+    
+    // Add notes
+    ws_data.push(['Notes:']);
+    if (currentShiftInfo.notes) {
+      // Split notes into multiple lines if they're long
+      const noteLines = currentShiftInfo.notes.match(/.{1,80}(\s|$)/g) || [currentShiftInfo.notes];
+      noteLines.forEach(line => {
+        ws_data.push(['', line.trim()]);
+      });
+    }
+    
+    // Create worksheet from array of arrays
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 15 }, // Staff Name
+      { wch: 10 }, // Start Time
+      { wch: 10 }, // End Time
+      { wch: 10 }, // Work Hours
+      { wch: 15 }, // Position
+      { wch: 15 }, // Secondary
+      { wch: 15 }, // Closing
+      { wch: 12 }  // Break Minutes
+    ];
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Deployment');
+    
+    // Generate filename with date
+    const typeStr = exportType === 'all' ? '' : 
+                    exportType === 'day' ? '_Day-Shift' : '_Night-Shift';
+    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}${typeStr}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
   };
 
   const parseHourlySalesData = (data) => {
