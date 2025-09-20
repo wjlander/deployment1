@@ -334,58 +334,65 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     window.print();
   };
 
-  const exportToExcel = () => {
-    try {
       const wb = XLSX.utils.book_new();
       
-      const deploymentsData = currentDeployments.map(deployment => {
-        const staffMember = staff.find(s => s.id === deployment.staff_id);
-        const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
-        return {
-          'Staff Name': staffMember ? staffMember.name : 'Unknown',
-          'Start Time': deployment.start_time || '',
-          'End Time': deployment.end_time || '',
-          'Work Hours': workHours.toFixed(2),
-          'Position': deployment.position || '',
-          'Secondary': deployment.secondary || '',
-          'Area': deployment.area || '',
-          'Cleaning': deployment.cleaning || '',
-          'Break Minutes': deployment.break_minutes || 0
-        };
+      // Get day of week from date
+      const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
+      const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+      const formattedDate = dateObj.toLocaleDateString('en-GB', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
       });
       
-      const ws1 = XLSX.utils.json_to_sheet(deploymentsData);
-      XLSX.utils.book_append_sheet(wb, ws1, 'Deployments');
+      // Create the data array starting with header information
+      const data = [
+        ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || ''],
+        ['', '', 'Day Shift Forecast', currentShiftInfo.dayShiftForecast || '£0.00', 'Night Shift Forecast', currentShiftInfo.nightShiftForecast || '£0.00', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes']
+      ];
       
-      // Shift Info sheet
-      const shiftInfoData = [{
-        'Date': currentShiftInfo.date,
-        'Total Forecast': currentShiftInfo.forecast || '£0.00',
-        'Day Shift Forecast': currentShiftInfo.day_shift_forecast || '£0.00',
-        'Night Shift Forecast': currentShiftInfo.night_shift_forecast || '£0.00',
-        'Weather': currentShiftInfo.weather || '',
-        'Notes': currentShiftInfo.notes || ''
-      }];
+      // Add deployment data
+      currentDeployments.forEach(deployment => {
+        const staffMember = staff.find(s => s.id === deployment.staffId);
+        const workHours = deployment.startTime && deployment.endTime ? 
+          calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
+        
+        data.push([
+          staffMember ? staffMember.name : 'Unknown',
+          deployment.startTime || '',
+          deployment.endTime || '',
+          workHours.toFixed(2),
+          deployment.position || '',
+          deployment.secondary || '',
+          deployment.cleaning || '',
+          deployment.breakMinutes || 0
+        ]);
+      });
       
-      const ws2 = XLSX.utils.json_to_sheet(shiftInfoData);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Shift Info');
+      // Add empty rows and targets/notes section
+      data.push(['', '', '', '', '', '', '', '']);
+      data.push(['', '', '', '', '', '', '', '']);
+      data.push([currentShiftInfo.notes || '', '', '', '', '', '', '', '']);
       
-      // Summary sheet
-      const totalHours = currentDeployments.reduce((sum, deployment) => {
-        const workHours = deployment.start_time && deployment.end_time ? 
-          calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
-        return sum + workHours;
-      }, 0);
+      // Create worksheet from array
+      const ws = XLSX.utils.aoa_to_sheet(data);
       
-      const summaryData = [{
-        'Total Staff': currentDeployments.length,
-        'Total Work Hours': totalHours.toFixed(2),
-        'Average Hours per Staff': currentDeployments.length > 0 ? (totalHours / currentDeployments.length).toFixed(2) : '0',
-        'Under 18 Staff': staff.filter(s => currentDeployments.some(d => d.staff_id === s.id) && s.is_under_18).length
-      }];
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 }, // Staff Name
+        { wch: 10 }, // Start Time
+        { wch: 10 }, // End Time
+        { wch: 12 }, // Work Hours
+        { wch: 15 }, // Position
+        { wch: 15 }, // Secondary
+        { wch: 15 }, // Cleaning
+        { wch: 12 }  // Break Minutes
+      ];
       
-      const ws3 = XLSX.utils.json_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, ws3, 'Summary');
+      XLSX.utils.book_append_sheet(wb, ws, 'Deployment Schedule');
       
       // Save file
       XLSX.writeFile(wb, `deployment-${selectedDate.replace(/\//g, '-')}.xlsx`);
