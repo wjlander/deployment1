@@ -718,7 +718,7 @@ const calculateBreakTime = (staffMember, workHours) => {
             Sales Data
           </button>
           <button
-            onClick={() => setCurrentPage('repots')}
+            onClick={() => setCurrentPage('Repots')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               currentPage === 'Reports'
                 ? 'bg-white text-blue-600 shadow-sm'
