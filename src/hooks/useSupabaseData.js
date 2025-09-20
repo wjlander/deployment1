@@ -205,7 +205,7 @@ export const useSupabaseData = () => {
   const updateShiftInfo = async (date, shiftData) => {
     const { data, error } = await supabase
       .from('shift_info')
-      .upsert([{ ...shiftData, date }])
+      .upsert([{ ...shiftData, date }], { onConflict: 'date' })
       .select()
       .single();
     
