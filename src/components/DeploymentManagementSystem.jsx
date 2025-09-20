@@ -30,6 +30,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     updatePosition,
     getPositionsWithAreas,
     getAreaPositions,
+    getDeploymentsByShift,
+    canAddDeployment,
     addTarget,
     updateTarget,
     removeTarget,
@@ -49,7 +51,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     position: '',
     secondary: '',
     area: '',
-    closing: ''
+    closing: '',
+    shiftType: 'Day Shift'
   });
   const [showNewDateModal, setShowNewDateModal] = useState(false);
   const [newDate, setNewDate] = useState('');
@@ -304,6 +307,12 @@ const calculateBreakTime = (staffMember, workHours) => {
 
   const handleAddDeployment = async () => {
     if (newDeployment.staff_id && newDeployment.start_time && newDeployment.end_time) {
+      // Check deployment limit before adding
+      if (!canAddDeployment(selectedDate, newDeployment.shiftType)) {
+        setError(`Maximum of 2 deployments per ${newDeployment.shiftType} per day exceeded`);
+        return;
+      }
+
       try {
         const staffMember = staff.find(s => s.id === newDeployment.staff_id);
         const workHours = calculateWorkHours(newDeployment.start_time, newDeployment.end_time);
@@ -318,7 +327,8 @@ const calculateBreakTime = (staffMember, workHours) => {
           secondary: newDeployment.secondary || '',
           area: newDeployment.area || '',
           closing: newDeployment.closing || '',
-          break_minutes: breakTime
+          break_minutes: breakTime,
+          shift_type: newDeployment.shiftType
         });
         
         setNewDeployment({
@@ -328,7 +338,8 @@ const calculateBreakTime = (staffMember, workHours) => {
           position: '',
           secondary: '',
           area: '',
-          closing: ''
+          closing: '',
+          shiftType: 'Day Shift'
         });
       } catch (err) {
         console.error('Error adding deployment:', err);
@@ -508,116 +519,80 @@ const calculateBreakTime = (staffMember, workHours) => {
   };
 
   const exportToExcel = () => {
-    const currentDeployments = deploymentsByDate[selectedDate] || [];
-    const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
-    const forecastTotals = calculateForecastTotals(selectedDate);
-    
-    if (currentDeployments.length === 0) {
-      alert('No deployments to export for this date');
-      return;
-    }
-
-    // Get day name from date
-    const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
-    const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
-    
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws_data = [];
-
-    // Header section - Row 1
-    ws_data.push(['Day', '', 'Date', '', 'Total Forecast', `£${forecastTotals.total.toFixed(2)}`, 'Weather']);
-    
-    // Header section - Row 2  
-    ws_data.push([
-      dayName, 
-      '', 
-      selectedDate, 
-      '', 'Day Shift Forecast', `£${forecastTotals.dayShift.toFixed(2)}`, 
-       
-      currentShiftInfo.weather || ''
-    ]);
-    
-    // Header section - Row 3
-    ws_data.push(['', '', '', '','Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, '', '']);
-    
-    // Empty row
-    ws_data.push(['']);
-    
-    // Column headers
-    ws_data.push([
-      'Staff Name',
-      'Start Time',
-      'End Time', 
-      'Work Hours',
-      'Position',
-      'Secondary',
-      'Closing',
-      'Break Minutes'
-    ]);
-    
-    // Staff deployment data
-    currentDeployments.forEach(deployment => {
-      const staffMember = staff.find(s => s.id === deployment.staff_id);
-      const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
+    try {
+      const deployments = deploymentsByDate[selectedDate] || [];
+      const shiftInfo = shiftInfoByDate[selectedDate];
       
-      ws_data.push([
-        staffMember ? staffMember.name : 'Unknown',
-        deployment.start_time,
-        deployment.end_time,
-        workHours.toFixed(2),
-        deployment.position,
-        deployment.secondary || '',
-        deployment.closing || '',
-        deployment.break_minutes || 0
-      ]);
-    });
-
-    // Empty row before notes
-    ws_data.push(['']);
-    
-    // Add targets if they exist
-    if (targets && targets.length > 0) {
-      ws_data.push(['Targets:']);
-      targets.forEach(target => {
-        ws_data.push(['', `${target.name}: ${target.value}`]);
-      });
-      ws_data.push(['']); // Empty row after targets
+      // Group deployments by shift type
+      const dayShiftDeployments = deployments.filter(d => d.shift_type === 'Day Shift');
+      const nightShiftDeployments = deployments.filter(d => d.shift_type === 'Night Shift');
+      
+      const wb = XLSX.utils.book_new();
+      
+      // Function to create deployment data with conditional columns
+      const createDeploymentData = (deployments, includeClosing = true) => {
+        return deployments.map(deployment => {
+          const staffMember = staff.find(s => s.id === deployment.staff_id);
+          const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
+          
+          const baseData = {
+            'Staff Name': staffMember?.name || 'Unknown',
+            'Start Time': deployment.start_time,
+            'End Time': deployment.end_time,
+            'Work Hours': workHours.toFixed(1),
+            'Position': deployment.position,
+            'Secondary': deployment.secondary || '',
+            'Area': deployment.area || '',
+            'Break (mins)': deployment.break_minutes || 0
+          };
+          
+          // Only include closing position for night shift
+          if (includeClosing) {
+            baseData['Closing Position'] = deployment.closing || '';
+          }
+          
+          return baseData;
+        });
+      };
+      
+      // Create separate sheets for day and night shifts if both exist
+      if (dayShiftDeployments.length > 0) {
+        const dayShiftData = createDeploymentData(dayShiftDeployments, false); // Hide closing column
+        const dayShiftWS = XLSX.utils.json_to_sheet(dayShiftData);
+        XLSX.utils.book_append_sheet(wb, dayShiftWS, 'Day Shift');
+      }
+      
+      if (nightShiftDeployments.length > 0) {
+        const nightShiftData = createDeploymentData(nightShiftDeployments, true); // Include closing column
+        const nightShiftWS = XLSX.utils.json_to_sheet(nightShiftData);
+        XLSX.utils.book_append_sheet(wb, nightShiftWS, 'Night Shift');
+      }
+      
+      // If only one shift type exists, create a single sheet
+      if (dayShiftDeployments.length === 0 && nightShiftDeployments.length === 0) {
+        const emptyWS = XLSX.utils.json_to_sheet([]);
+        XLSX.utils.book_append_sheet(wb, emptyWS, 'No Deployments');
+      }
+      
+      // Add shift info sheet if available
+      if (shiftInfo) {
+        const shiftInfoData = [
+          { 'Field': 'Date', 'Value': shiftInfo.date },
+          { 'Field': 'Forecast', 'Value': shiftInfo.forecast },
+          { 'Field': 'Day Shift Forecast', 'Value': shiftInfo.day_shift_forecast },
+          { 'Field': 'Night Shift Forecast', 'Value': shiftInfo.night_shift_forecast },
+          { 'Field': 'Weather', 'Value': shiftInfo.weather },
+          { 'Field': 'Notes', 'Value': shiftInfo.notes }
+        ];
+        
+        const shiftInfoWS = XLSX.utils.json_to_sheet(shiftInfoData);
+        XLSX.utils.book_append_sheet(wb, shiftInfoWS, 'Shift Info');
+      }
+      
+      XLSX.writeFile(wb, `deployment-${selectedDate.replace(/\//g, '-')}.xlsx`);
+    } catch (err) {
+      setError('Failed to export to Excel: ' + err.message);
     }
-    
-    // Add notes
-    ws_data.push(['Notes:']);
-    if (currentShiftInfo.notes) {
-      // Split notes into multiple lines if they're long
-      const noteLines = currentShiftInfo.notes.match(/.{1,80}(\s|$)/g) || [currentShiftInfo.notes];
-      noteLines.forEach(line => {
-        ws_data.push(['', line.trim()]);
-      });
-    }
-    
-    // Create worksheet from array of arrays
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 15 }, // Staff Name
-      { wch: 10 }, // Start Time
-      { wch: 10 }, // End Time
-      { wch: 10 }, // Work Hours
-      { wch: 15 }, // Position
-      { wch: 15 }, // Secondary
-      { wch: 15 }, // Closing
-      { wch: 12 }  // Break Minutes
-    ];
-    
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Deployment');
-    
-    // Generate filename with date
-    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}.xlsx`;
-    
-    // Save file
-    XLSX.writeFile(wb, filename);
   };
 
   const parseHourlySalesData = (data) => {
@@ -985,6 +960,20 @@ const calculateBreakTime = (staffMember, workHours) => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Shift Type
+          </label>
+          <select
+            value={newDeployment.shiftType}
+            onChange={(e) => setNewDeployment(prev => ({ ...prev, shiftType: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            <option value="Day Shift">Day Shift</option>
+            <option value="Night Shift">Night Shift</option>
+          </select>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Staff Member</label>
           <select
             value={newDeployment.staff_id}
@@ -1081,11 +1070,18 @@ const calculateBreakTime = (staffMember, workHours) => {
 
       <button
         onClick={handleAddDeployment}
-        className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        disabled={!canAddDeployment(selectedDate, newDeployment.shiftType)}
+        className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md flex items-center gap-2"
       >
         <Plus className="w-4 h-4" />
         Add Deployment
       </button>
+      
+      {!canAddDeployment(selectedDate, newDeployment.shiftType) && (
+        <p className="text-sm text-red-600 mt-2">
+          Maximum of 2 deployments per {newDeployment.shiftType} reached
+        </p>
+      )}
     </div>
   );
 
@@ -1683,7 +1679,57 @@ const calculateBreakTime = (staffMember, workHours) => {
             {renderDateSelector()}
             {renderShiftInfo()}
             {renderDeploymentForm()}
-            {renderDeploymentTable()}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Current Deployments</h3>
+              
+              {/* Day Shift Deployments */}
+              <div className="mb-6">
+                <h4 className="text-md font-medium text-blue-700 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Day Shift ({getDeploymentsByShift(selectedDate, 'Day Shift').length}/2)
+                </h4>
+                {getDeploymentsByShift(selectedDate, 'Day Shift').length === 0 ? (
+                  <p className="text-gray-500 text-sm mb-4">No day shift deployments</p>
+                ) : (
+                  <div className="space-y-3 mb-4">
+                    {getDeploymentsByShift(selectedDate, 'Day Shift').map(deployment => (
+                      <DeploymentCard 
+                        key={deployment.id} 
+                        deployment={deployment} 
+                        onRemove={handleRemoveDeployment}
+                        onUpdate={handleUpdateDeployment}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Night Shift Deployments */}
+              <div>
+                <h4 className="text-md font-medium text-purple-700 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Night Shift ({getDeploymentsByShift(selectedDate, 'Night Shift').length}/2)
+                </h4>
+                {getDeploymentsByShift(selectedDate, 'Night Shift').length === 0 ? (
+                  <p className="text-gray-500 text-sm">No night shift deployments</p>
+                ) : (
+                  <div className="space-y-3">
+                    {getDeploymentsByShift(selectedDate, 'Night Shift').map(deployment => (
+                      <DeploymentCard 
+                        key={deployment.id} 
+                        deployment={deployment} 
+                        onRemove={handleRemoveDeployment}
+                        onUpdate={handleUpdateDeployment}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {currentDeployments.length === 0 && (
+                <p className="text-gray-500">No deployments for this date</p>
+              )}
+            </div>
           </>
         )}
 
