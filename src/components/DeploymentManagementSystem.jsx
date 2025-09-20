@@ -119,6 +119,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           
           // Update shift info with new forecasts
           await updateShiftInfo(selectedDate, {
+            ...currentShiftInfo,
             forecast: totalForecast,
             day_shift_forecast: dayForecast,
             night_shift_forecast: nightForecast
@@ -130,26 +131,27 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         ...prev,
         [field]: value
       }));
-      
-      const updatedShiftInfo = {
-        ...currentShiftInfo,
-        forecast: totalForecast,
-        day_shift_forecast: dayForecast,
-        night_shift_forecast: nightForecast
-      };
-      
-      await updateShiftInfo(selectedDate, updatedShiftInfo);
-      
-      // Force local state update
-      setShiftInfoByDate(prev => ({
-        ...prev,
-        [selectedDate]: {
-          ...prev[selectedDate],
-          forecast: totalForecast,
-          day_shift_forecast: dayForecast,
-          night_shift_forecast: nightForecast
+            ...currentShiftInfo,
+            forecast: totalForecast,
+            day_shift_forecast: dayForecast,
+            night_shift_forecast: nightForecast
+            };
+            
+            await updateShiftInfo(selectedDate, updatedShiftInfo);
+            
+            // Force local state update
+            setShiftInfoByDate(prev => ({
+              ...prev,
+              [selectedDate]: {
+                ...prev[selectedDate],
+                forecast: totalForecast,
+                day_shift_forecast: dayForecast,
+                night_shift_forecast: nightForecast
+              }
+            }));
         }
-      }));
+      }
+      
     } catch (error) {
       console.error('Error updating sales data:', error);
     }
