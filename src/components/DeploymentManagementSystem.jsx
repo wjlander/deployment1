@@ -149,62 +149,49 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         alert('Failed to add staff member. Please try again.');
       }
     }
-          '', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', 
-          'Night Shift Forecast', currentShiftInfo.night_shift_forecast || '£0.00', '', '', ''
+  };
+
   const handleRemoveStaff = async (id) => {
     if (confirm('Are you sure you want to remove this staff member? This will also remove all their deployments.')) {
       try {
         await removeStaff(id);
       } catch (err) {
         console.error('Error removing staff:', err);
-        alert('Error removing staff member. Please try again.');
-      }
         alert('Failed to remove staff member. Please try again.');
       }
-          'Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', ''
+    }
   };
 
   const handleAddDeployment = async () => {
     if (newDeployment.staff_id && newDeployment.start_time && newDeployment.end_time) {
-          const staffMember = staff.find(s => s.id === deployment.staff_id);
-          const staffName = staffMember ? staffMember.name : 'Unknown';
-          const workHours = deployment.start_time && deployment.end_time ? 
-            calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
+      try {
+        const staffMember = staff.find(s => s.id === newDeployment.staff_id);
+        const workHours = calculateWorkHours(newDeployment.start_time, newDeployment.end_time);
+        const breakTime = calculateBreakTime(staffMember, workHours);
         
         await addDeployment({
           date: selectedDate,
-            deployment.start_time || '',
-            deployment.end_time || '',
+          staff_id: newDeployment.staff_id,
+          start_time: newDeployment.start_time,
           end_time: newDeployment.end_time,
           position: newDeployment.position || '',
           secondary: newDeployment.secondary || '',
           area: newDeployment.area || '',
-            deployment.break_minutes || 0,
-            ''
+          cleaning: newDeployment.cleaning || '',
           break_minutes: breakTime
         });
         
         setNewDeployment({
-        wsData.push(['', '', '', '', '', '', '', '', '']);
+          staff_id: '',
           start_time: '',
           end_time: '',
           position: '',
-          wsData.push([currentShiftInfo.notes, '', '', '', '', '', '', '', '']);
+          secondary: '',
           area: '',
           cleaning: ''
         });
       } catch (err) {
         console.error('Error adding deployment:', err);
-        // Merge cells for notes if notes exist
-        if (currentShiftInfo.notes) {
-          const notesRowIndex = wsData.length - 1; // Last row with notes
-          ws['!merges'] = ws['!merges'] || [];
-          ws['!merges'].push({
-            s: { r: notesRowIndex, c: 0 }, // Start: row notesRowIndex, column A (0)
-            e: { r: notesRowIndex, c: 7 }  // End: row notesRowIndex, column H (7)
-          });
-        }
-        
         alert('Failed to add deployment. Please try again.');
       }
     }
@@ -214,8 +201,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     try {
       await removeDeployment(id);
     } catch (err) {
-          { wch: 12 }, // Break Minutes
-          { wch: 5 }   // Extra column
+      console.error('Error removing deployment:', err);
       alert('Failed to remove deployment. Please try again.');
     }
   };
@@ -362,39 +348,52 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       });
       
       // Create the data array starting with header information
-      const data = [
-        ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || ''],
-        ['', '', 'Day Shift Forecast', currentShiftInfo.dayShiftForecast || '£0.00', 'Night Shift Forecast', currentShiftInfo.nightShiftForecast || '£0.00', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes']
+      const wsData = [
+        ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || '', ''],
+        ['', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', 
+          'Night Shift Forecast', currentShiftInfo.night_shift_forecast || '£0.00', '', '', ''],
+        ['', '', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', '', ''],
+        ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', '']
       ];
       
       // Add deployment data
       currentDeployments.forEach(deployment => {
-        const staffMember = staff.find(s => s.id === deployment.staffId);
-        const workHours = deployment.startTime && deployment.endTime ? 
-          calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
+        const staffMember = staff.find(s => s.id === deployment.staff_id);
+        const staffName = staffMember ? staffMember.name : 'Unknown';
+        const workHours = deployment.start_time && deployment.end_time ? 
+          calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
         
-        data.push([
-          staffMember ? staffMember.name : 'Unknown',
-          deployment.startTime || '',
-          deployment.endTime || '',
+        wsData.push([
+          staffName,
+          deployment.start_time || '',
+          deployment.end_time || '',
           workHours.toFixed(2),
           deployment.position || '',
           deployment.secondary || '',
           deployment.cleaning || '',
-          currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || '', ''
+          deployment.break_minutes || 0,
+          ''
         ]);
       });
       
       // Add empty rows and targets/notes section
-      data.push(['', '', '', '', '', '', '', '']);
-      data.push(['', '', '', '', '', '', '', '']);
-      data.push([currentShiftInfo.notes || '', '', '', '', '', '', '', '']);
+      wsData.push(['', '', '', '', '', '', '', '', '']);
+      wsData.push(['', '', '', '', '', '', '', '', '']);
+      wsData.push([currentShiftInfo.notes, '', '', '', '', '', '', '', '']);
       
       // Create worksheet from array
-      const ws = XLSX.utils.aoa_to_sheet(data);
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Merge cells for notes if notes exist
+      if (currentShiftInfo.notes) {
+        const notesRowIndex = wsData.length - 1; // Last row with notes
+        ws['!merges'] = ws['!merges'] || [];
+        ws['!merges'].push({
+          s: { r: notesRowIndex, c: 0 }, // Start: row notesRowIndex, column A (0)
+          e: { r: notesRowIndex, c: 7 }  // End: row notesRowIndex, column H (7)
+        });
+      }
       
       // Set column widths
       ws['!cols'] = [
@@ -405,7 +404,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         { wch: 15 }, // Position
         { wch: 15 }, // Secondary
         { wch: 15 }, // Cleaning
-        { wch: 12 }  // Break Minutes
+        { wch: 12 }, // Break Minutes
+        { wch: 5 }   // Extra column
       ];
       
       XLSX.utils.book_append_sheet(wb, ws, 'Deployment Schedule');
