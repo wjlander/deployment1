@@ -718,9 +718,20 @@ const calculateBreakTime = (staffMember, workHours) => {
             Sales Data
           </button>
           <button
-            onClick={() => setCurrentPage('Repots')}
+            onClick={() => setCurrentPage('reports')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              currentPage === 'reports'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            <FileText className="w-4 h-4 inline mr-2" />
+            Reports
+          </button>
+          <button
+            onClick={() => setCurrentPage('targets')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              currentPage === 'Reports'
+              currentPage === 'targets'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
