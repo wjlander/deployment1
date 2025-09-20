@@ -1047,3 +1047,365 @@ const DeploymentManagementSystem = ({ onLogout }) => {
                                 defaultValue={position.area_id || ''}
                                 onChange={(e) => handleUpdatePosition(position.id, { area_id: e.target.value || null })}
                                 className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                              >
+                                <option value="">No area assignment</option>
+                                {positions.filter(p => p.type === 'area').map(area => (
+                                  <option key={area.id} value={area.id}>{area.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-gray-900">{position.name}</div>
+                              {position.area_name && (
+                                <div className="text-xs text-gray-500">Area: {position.area_name}</div>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setEditingPosition(position.id)}
+                                className="text-blue-600 hover:text-blue-900 transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleRemovePosition(position.id)}
+                                className="text-red-600 hover:text-red-900 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Settings className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No {title.toLowerCase()} added yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderSalesData = () => (
+    <div className="space-y-6">
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales Data Input</h3>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Hourly Sales Data (Tab-separated)
+            </label>
+            <textarea
+              value={salesData.hourlyData}
+              onChange={(e) => updateSalesData('hourlyData', e.target.value)}
+              className="w-full h-64 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              placeholder="Paste hourly sales data here..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Weekly Sales Data (Tab-separated)
+            </label>
+            <textarea
+              value={salesData.weeklyData}
+              onChange={(e) => updateSalesData('weeklyData', e.target.value)}
+              className="w-full h-64 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              placeholder="Paste weekly sales data here..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Parsed Data Display */}
+      {(parsedSalesData.today.length > 0 || parsedSalesData.weekly.length > 0) && (
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Parsed Sales Data</h3>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {parsedSalesData.today.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Today's Data</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Time</th>
+                        <th className="px-3 py-2 text-left">Forecast</th>
+                        <th className="px-3 py-2 text-left">Actual</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {parsedSalesData.today.slice(0, 10).map((row, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-2">{row.time}</td>
+                          <td className="px-3 py-2">{row.forecast}</td>
+                          <td className="px-3 py-2">{row.actual}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {parsedSalesData.today.length > 10 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Showing first 10 rows of {parsedSalesData.today.length} total
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {parsedSalesData.weekly.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Weekly Data</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Time</th>
+                        <th className="px-3 py-2 text-left">Sales</th>
+                        <th className="px-3 py-2 text-left">Target</th>
+                        <th className="px-3 py-2 text-left">Variance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {parsedSalesData.weekly.slice(0, 10).map((row, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-2">{row.time}</td>
+                          <td className="px-3 py-2">{row.sales}</td>
+                          <td className="px-3 py-2">{row.target}</td>
+                          <td className="px-3 py-2">{row.variance}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {parsedSalesData.weekly.length > 10 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Showing first 10 rows of {parsedSalesData.weekly.length} total
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderReports = () => (
+    <div className="space-y-6">
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Reports & Analytics</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="w-6 h-6 text-blue-600" />
+              <h4 className="font-medium text-gray-800">Staff Summary</h4>
+            </div>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>Total Staff: {staff.length}</p>
+              <p>Under 18: {staff.filter(s => s.is_under_18).length}</p>
+              <p>18+: {staff.filter(s => !s.is_under_18).length}</p>
+            </div>
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className="w-6 h-6 text-green-600" />
+              <h4 className="font-medium text-gray-800">Deployment Summary</h4>
+            </div>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>Total Dates: {Object.keys(deploymentsByDate).length}</p>
+              <p>Today's Deployments: {currentDeployments.length}</p>
+              <p>Total Hours: {currentDeployments.reduce((acc, d) => acc + calculateWorkHours(d.start_time, d.end_time), 0).toFixed(1)}</p>
+            </div>
+          </div>
+
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <Settings className="w-6 h-6 text-purple-600" />
+              <h4 className="font-medium text-gray-800">Position Summary</h4>
+            </div>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>Regular Positions: {regularPositions.length}</p>
+              <p>Pack Positions: {packPositions.length}</p>
+              <p>Areas: {areas.length}</p>
+              <p>Cleaning Areas: {cleaningAreas.length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Break Time Analysis */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Break Time Analysis - {selectedDate}</h3>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age Group</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Hours</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {currentDeployments.map((deployment) => {
+                const staffMember = staff.find(s => s.id === deployment.staff_id);
+                const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
+                const requiredBreak = calculateBreakTime(staffMember, workHours);
+                const actualBreak = deployment.break_minutes || 0;
+                
+                return (
+                  <tr key={deployment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {staffMember?.name || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {staffMember?.is_under_18 ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          Under 18
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          18+
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {workHours.toFixed(1)} hours
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {actualBreak} min (Required: {requiredBreak} min)
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {actualBreak >= requiredBreak ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Compliant
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Non-compliant
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          
+          {currentDeployments.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No deployments to analyze</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // New Date Modal
+  const renderNewDateModal = () => {
+    if (!showNewDateModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Create New Date</h3>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowNewDateModal(false);
+                setNewDate('');
+              }}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={createNewDate}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create Date
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center gap-3">
+              <Users className="w-8 h-8 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Deployment Management System</h1>
+            </div>
+            
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {renderNavigation()}
+        
+        {currentPage === 'deployment' && (
+          <>
+            {renderDateSelector()}
+            {renderShiftInfo()}
+            {renderDeploymentForm()}
+            {renderDeploymentTable()}
+          </>
+        )}
+        
+        {currentPage === 'staff' && renderStaffManagement()}
+        {currentPage === 'positions' && renderPositionManagement()}
+        {currentPage === 'sales' && renderSalesData()}
+        {currentPage === 'reports' && renderReports()}
+      </main>
+
+      {renderNewDateModal()}
+    </div>
+  );
+};
+
+export default DeploymentManagementSystem;
