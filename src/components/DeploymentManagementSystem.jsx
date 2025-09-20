@@ -119,9 +119,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       
       setSalesData(prev => ({
         ...prev,
-        [field]: value
-      }));
-            const updatedShiftInfo = {
+      // Parse and update forecasts when sales data changes
+      if (field === 'today_data') {
       // Parse and update forecasts when sales data changes
       if (field === 'today_data') {
         const parsed = parseSalesData(value);
