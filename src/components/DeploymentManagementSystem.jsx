@@ -705,6 +705,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   );
 
   const renderShiftInfo = () => (
+    <>
     <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">Shift Information - {selectedDate}</h3>
       
@@ -762,23 +763,23 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           />
         </div>
       </div>
-    </div>
-  );
+      </div>
 
-  const renderSalesModal = () => (
-    showSalesModal && (
+    {/* Sales Records Modal */}
+    {showSalesModal && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Sales Records for {selectedDate}</h3>
-              <button
-                onClick={() => setShowSalesModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Sales Records for {selectedDate}</h3>
+                <button
+                  onClick={() => setShowSalesModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+              {/* Modal content would go here */}
             
             <div className="space-y-3 mb-4">
               {tempSalesRecords.map((record, index) => (
@@ -837,7 +838,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           </div>
         </div>
       </div>
-    )
+    )}
+    </>
   );
 
   const renderDeploymentForm = () => (
@@ -1544,7 +1546,6 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           <>
             {renderDateSelector()}
             {renderShiftInfo()}
-            {renderSalesModal()}
             {renderDeploymentForm()}
             {renderDeploymentTable()}
           </>
