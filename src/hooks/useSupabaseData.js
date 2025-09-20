@@ -333,11 +333,11 @@ export const useSupabaseData = () => {
     const shiftInfoToCopy = shiftInfoByDate[fromDate];
     if (shiftInfoToCopy) {
       await updateShiftInfo(toDate, {
-        forecast: shiftInfoToCopy.forecast,
-        day_shift_forecast: shiftInfoToCopy.day_shift_forecast,
-        night_shift_forecast: shiftInfoToCopy.night_shift_forecast,
-        weather: shiftInfoToCopy.weather,
-        notes: shiftInfoToCopy.notes
+        forecast: shiftInfoToCopy.forecast || '£0.00',
+        day_shift_forecast: shiftInfoToCopy.day_shift_forecast || '£0.00',
+        night_shift_forecast: shiftInfoToCopy.night_shift_forecast || '£0.00',
+        weather: shiftInfoToCopy.weather || '',
+        notes: shiftInfoToCopy.notes || ''
       });
     }
     
