@@ -114,11 +114,10 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         const parsed = parseSalesData(value);
         if (parsed.length > 0) {
           const totalForecast = parsed[parsed.length - 1]?.total || '£0.00';
-          const dayForecast = parsed[parsed.length - 1]?.day || '£0.00';
-          const nightForecast = parsed[parsed.length - 1]?.night || '£0.00';
+          const dayForecast = parsed.find(p => p.period?.includes('Day'))?.total || '£0.00';
+          const nightForecast = parsed.find(p => p.period?.includes('Night'))?.total || '£0.00';
           
-          // Update shift info with new forecasts
-          updateShiftInfo(selectedDate, {
+          await updateShiftInfo(selectedDate, {
             ...currentShiftInfo,
             forecast: totalForecast,
             day_shift_forecast: dayForecast,
@@ -131,26 +130,27 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         ...prev,
         [field]: value
       }));
-      
-      const updatedShiftInfo = {
-        ...currentShiftInfo,
-        forecast: totalForecast,
-        day_shift_forecast: dayForecast,
-        night_shift_forecast: nightForecast
-      };
-      
-      await updateShiftInfo(selectedDate, updatedShiftInfo);
-      
-      // Force local state update
-      setShiftInfoByDate(prev => ({
-        ...prev,
-        [selectedDate]: {
-          ...prev[selectedDate],
-          forecast: totalForecast,
-          day_shift_forecast: dayForecast,
-          night_shift_forecast: nightForecast
+            ...currentShiftInfo,
+            forecast: totalForecast,
+            day_shift_forecast: dayForecast,
+            night_shift_forecast: nightForecast
+            };
+            
+            await updateShiftInfo(selectedDate, updatedShiftInfo);
+            
+            // Force local state update
+            setShiftInfoByDate(prev => ({
+              ...prev,
+              [selectedDate]: {
+                ...prev[selectedDate],
+                forecast: totalForecast,
+                day_shift_forecast: dayForecast,
+                night_shift_forecast: nightForecast
+              }
+            }));
         }
-      }));
+      }
+      
     } catch (error) {
       console.error('Error updating sales data:', error);
     }
