@@ -118,7 +118,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           const nightForecast = parsed[parsed.length - 1]?.night || '£0.00';
           
           // Update shift info with new forecasts
-          await updateShiftInfo(selectedDate, {
+          updateShiftInfo(selectedDate, {
+            ...currentShiftInfo,
             forecast: totalForecast,
             day_shift_forecast: dayForecast,
             night_shift_forecast: nightForecast
