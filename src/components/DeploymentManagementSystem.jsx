@@ -115,12 +115,12 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         if (parsed.length > 0) {
           const totalForecast = parsed[parsed.length - 1]?.total || '£0.00';
           const dayForecast = parsed.find(p => p.period?.includes('Day'))?.total || '£0.00';
-          const nightForecast = parsed.find(p => p.period?.includes('Night'))?.total || '£0.00';
-        await updateShiftInfo(selectedDate, {
-          ...currentShiftInfo,
-          forecast: totalForecast,
-          day_shift_forecast: dayForecast,
-          night_shift_forecast: nightForecast
+      await updateShiftInfo(selectedDate, {
+        ...currentShiftInfo,
+        forecast: `£${totalForecast.toFixed(2)}`,
+        day_shift_forecast: `£${dayForecast.toFixed(2)}`,
+        night_shift_forecast: `£${nightForecast.toFixed(2)}`
+      });
         });
         }
       }
