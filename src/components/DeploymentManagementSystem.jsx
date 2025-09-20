@@ -107,6 +107,44 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     }
   };
 
+  const updateSalesData = async (field, value) => {
+    try {
+      const { data, error } = await supabase
+        .from('sales_data')
+        .upsert([{ [field]: value }], { onConflict: 'id' })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      setSalesData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+      
+      // Parse and update forecasts when sales data changes
+      if (field === 'today_data') {
+        const parsed = parseSalesData(value);
+        if (parsed.length > 0) {
+          const totalForecast = parsed[parsed.length - 1]?.total || '£0.00';
+          const dayForecast = parsed[parsed.length - 1]?.day || '£0.00';
+          const nightForecast = parsed[parsed.length - 1]?.night || '£0.00';
+          
+          // Update shift info with new forecasts
+          await updateShiftInfo(selectedDate, {
+            ...currentShiftInfo,
+            forecast: totalForecast,
+            day_shift_forecast: dayForecast,
+            night_shift_forecast: nightForecast
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error updating sales data:', error);
+    }
+  };
+
   const handleAddStaff = async () => {
     if (newStaff.name.trim()) {
       try {
