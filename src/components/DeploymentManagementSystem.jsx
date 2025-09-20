@@ -703,7 +703,7 @@ const calculateBreakTime = (staffMember, workHours) => {
     window.print();
   };
 
-  const exportToExcel = (exportType = 'all') => {
+  const exportToExcel = () => {
     const currentDeployments = deploymentsByDate[selectedDate] || [];
     const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
     const forecastTotals = calculateForecastTotals(selectedDate);
@@ -712,23 +712,6 @@ const calculateBreakTime = (staffMember, workHours) => {
       alert('No deployments to export for this date');
       return;
     }
-
-    // Filter deployments based on export type
-    let deploymentsToExport = currentDeployments;
-    if (exportType === 'day') {
-      deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Day Shift');
-    } else if (exportType === 'night') {
-      deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Night Shift');
-    }
-
-    // Sort deployments by start time
-    deploymentsToExport = [...deploymentsToExport].sort((a, b) => {
-      const timeA = a.start_time.split(':').map(Number);
-      const timeB = b.start_time.split(':').map(Number);
-      const minutesA = timeA[0] * 60 + timeA[1];
-      const minutesB = timeB[0] * 60 + timeB[1];
-      return minutesA - minutesB;
-    });
 
     // Get day name from date
     const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
@@ -770,7 +753,7 @@ const calculateBreakTime = (staffMember, workHours) => {
     ]);
     
     // Staff deployment data
-    deploymentsToExport.forEach(deployment => {
+    currentDeployments.forEach(deployment => {
       const staffMember = staff.find(s => s.id === deployment.staff_id);
       const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
       
@@ -827,9 +810,7 @@ const calculateBreakTime = (staffMember, workHours) => {
     XLSX.utils.book_append_sheet(wb, ws, 'Deployment');
     
     // Generate filename with date
-    const typeStr = exportType === 'all' ? '' : 
-                    exportType === 'day' ? '_Day-Shift' : '_Night-Shift';
-    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}${typeStr}.xlsx`;
+    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}.xlsx`;
     
     // Save file
     XLSX.writeFile(wb, filename);
