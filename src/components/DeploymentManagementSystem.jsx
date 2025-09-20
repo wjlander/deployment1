@@ -762,24 +762,22 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           />
         </div>
       </div>
-      </div>
+    </div>
+  );
 
-    {/* Sales Records Modal */}
-    {showSalesModal && (
+  const renderSalesModal = () => (
+    showSalesModal && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Sales Records for {selectedDate}</h3>
-                <button
-                  onClick={() => setShowSalesModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ×
-                </button>
-              </div>
-              {/* Modal content would go here */}
-            </div>
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Sales Records for {selectedDate}</h3>
+              <button
+                onClick={() => setShowSalesModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
             </div>
             
             <div className="space-y-3 mb-4">
@@ -838,8 +836,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
             </div>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    )
   );
 
   const renderDeploymentForm = () => (
@@ -1527,8 +1525,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
 
   // Main render
   return (
-    <>
-      <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Deployment Management System</h1>
@@ -1547,6 +1544,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           <>
             {renderDateSelector()}
             {renderShiftInfo()}
+            {renderSalesModal()}
             {renderDeploymentForm()}
             {renderDeploymentTable()}
           </>
