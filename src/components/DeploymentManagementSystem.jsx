@@ -4,6 +4,38 @@ import * as XLSX from 'xlsx';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 
 const DeploymentManagementSystem = ({ onLogout }) => {
+  // Call useSupabaseData hook first, before any other hooks
+  const {
+    staff,
+    positions,
+    deploymentsByDate,
+    shiftInfoByDate,
+    salesRecordsByDate,
+    targets,
+    loading,
+    error,
+    addStaff,
+    removeStaff,
+    addDeployment,
+    removeDeployment,
+    updateDeployment,
+    updateShiftInfo,
+    updateSalesRecords,
+    calculateForecastTotals,
+    deleteShiftInfo,
+    duplicateDeployments,
+    getPositionsByType,
+    addPosition,
+    removePosition,
+    updatePosition,
+    getPositionsWithAreas,
+    getAreaPositions,
+    addTarget,
+    updateTarget,
+    removeTarget,
+    loadTargets
+  } = useSupabaseData();
+
   const [currentPage, setCurrentPage] = useState('deployment');
   const [selectedDate, setSelectedDate] = useState('08/09/2025');
   const [newStaff, setNewStaff] = useState({ name: '', is_under_18: false });
@@ -38,38 +70,6 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     value: '',
     priority: 0
   });
-
-  // Use Supabase hook
-  const {
-    staff,
-    positions,
-    deploymentsByDate,
-    shiftInfoByDate,
-    salesRecordsByDate,
-    targets,
-    loading,
-    error,
-    addStaff,
-    removeStaff,
-    addDeployment,
-    removeDeployment,
-    updateDeployment,
-    updateShiftInfo,
-    updateSalesRecords,
-    calculateForecastTotals,
-    deleteShiftInfo,
-    duplicateDeployments,
-    getPositionsByType,
-    addPosition,
-    removePosition,
-    updatePosition,
-    getPositionsWithAreas,
-    getAreaPositions,
-    addTarget,
-    updateTarget,
-    removeTarget,
-    loadTargets
-  } = useSupabaseData();
 
   // Get current deployments and shift info
   const currentDeployments = deploymentsByDate[selectedDate] || [];
