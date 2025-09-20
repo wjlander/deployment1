@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 
-const DeploymentManagementSystem = () => {
+const DeploymentManagementSystem = ({ onLogout }) => {
   const [currentPage, setCurrentPage] = useState('deployment');
   const [selectedDate, setSelectedDate] = useState('08/09/2025');
   const [newStaff, setNewStaff] = useState({ name: '', is_under_18: false });
@@ -1214,7 +1214,16 @@ const DeploymentManagementSystem = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">KFC Deployment Management System</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Deployment Management System</h1>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
         
         {renderNavigation()}
         
