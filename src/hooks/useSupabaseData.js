@@ -167,6 +167,14 @@ export const useSupabaseData = () => {
 
   // Deployment operations
   const addDeployment = async (deploymentData) => {
+    // Validate deployment limit before attempting to insert
+    const existingDeployments = deploymentsByDate[deploymentData.date] || [];
+    const sameShiftDeployments = existingDeployments.filter(d => d.shift_type === deploymentData.shift_type);
+    
+    if (sameShiftDeployments.length >= 2) {
+      throw new Error(`Maximum of 2 deployments per ${deploymentData.shift_type} per day exceeded`);
+    }
+
     const { data, error } = await supabase
       .from('deployments')
       .insert([deploymentData])
@@ -413,6 +421,15 @@ export const useSupabaseData = () => {
     return positions.filter(p => p.type === type).map(p => p.name);
   };
 
+  const getDeploymentsByShift = (date, shiftType) => {
+    const deployments = deploymentsByDate[date] || [];
+    return deployments.filter(d => d.shift_type === shiftType);
+  };
+
+  const canAddDeployment = (date, shiftType) => {
+    const existingDeployments = getDeploymentsByShift(date, shiftType);
+    return existingDeployments.length < 2;
+  };
   const getPositionsWithAreas = () => {
     return positions.map(position => {
       const area = positions.find(p => p.id === position.area_id);
@@ -432,8 +449,18 @@ export const useSupabaseData = () => {
     
     if (deploymentsToCopy.length === 0) return;
     
+    // Group deployments by shift type to respect limits
+    const dayShiftDeployments = deploymentsToCopy.filter(d => d.shift_type === 'Day Shift');
+    const nightShiftDeployments = deploymentsToCopy.filter(d => d.shift_type === 'Night Shift');
+    
+    // Limit to 2 deployments per shift type
+    const deploymentsToCreate = [
+      ...dayShiftDeployments.slice(0, 2),
+      ...nightShiftDeployments.slice(0, 2)
+    ];
+
     // Create new deployments for the target date
-    const newDeployments = deploymentsToCopy.map(d => ({
+    const newDeployments = deploymentsToCreate.map(d => ({
       date: toDate,
       staff_id: d.staff_id,
       start_time: d.start_time,
@@ -442,7 +469,8 @@ export const useSupabaseData = () => {
       secondary: d.secondary || '',
       area: d.area || '',
       closing: d.closing || '',
-      break_minutes: d.break_minutes || 0
+      break_minutes: d.break_minutes || 0,
+      shift_type: d.shift_type
     }));
     
     const { data, error } = await supabase
@@ -554,6 +582,8 @@ export const useSupabaseData = () => {
     getPositionsByType,
     getPositionsWithAreas,
     getAreaPositions,
+    getDeploymentsByShift,
+    canAddDeployment,
     
     // Target operations
     addTarget,
