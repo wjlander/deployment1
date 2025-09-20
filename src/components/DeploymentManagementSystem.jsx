@@ -149,49 +149,60 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         alert('Failed to add staff member. Please try again.');
       }
     }
-  };
-
+          '', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', 
+          'Night Shift Forecast', currentShiftInfo.night_shift_forecast || '£0.00', '', '', ''
   const handleRemoveStaff = async (id) => {
     if (confirm('Are you sure you want to remove this staff member? This will also remove all their deployments.')) {
       try {
-        await removeStaff(id);
-      } catch (err) {
+        wsData.push(['', '', '', '', '', '', '', '', '']);
+        wsData.push(['', '', '', '', '', '', '', '', '']);
         console.error('Error removing staff:', err);
         alert('Failed to remove staff member. Please try again.');
       }
-    }
+          'Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', ''
   };
 
   const handleAddDeployment = async () => {
     if (newDeployment.staff_id && newDeployment.start_time && newDeployment.end_time) {
-      try {
-        const staffMember = staff.find(s => s.id === newDeployment.staff_id);
-        const workHours = calculateWorkHours(newDeployment.start_time, newDeployment.end_time);
-        const breakTime = calculateBreakTime(staffMember, workHours);
+          const staffMember = staff.find(s => s.id === deployment.staff_id);
+          const staffName = staffMember ? staffMember.name : 'Unknown';
+          const workHours = deployment.start_time && deployment.end_time ? 
+            calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
         
         await addDeployment({
           date: selectedDate,
-          staff_id: newDeployment.staff_id,
-          start_time: newDeployment.start_time,
+            deployment.start_time || '',
+            deployment.end_time || '',
           end_time: newDeployment.end_time,
           position: newDeployment.position || '',
           secondary: newDeployment.secondary || '',
           area: newDeployment.area || '',
-          cleaning: newDeployment.cleaning || '',
+            deployment.break_minutes || 0,
+            ''
           break_minutes: breakTime
         });
         
         setNewDeployment({
-          staff_id: '',
+        wsData.push(['', '', '', '', '', '', '', '', '']);
           start_time: '',
           end_time: '',
           position: '',
-          secondary: '',
+          wsData.push([currentShiftInfo.notes, '', '', '', '', '', '', '', '']);
           area: '',
           cleaning: ''
         });
       } catch (err) {
         console.error('Error adding deployment:', err);
+        // Merge cells for notes if notes exist
+        if (currentShiftInfo.notes) {
+          const notesRowIndex = wsData.length - 1; // Last row with notes
+          ws['!merges'] = ws['!merges'] || [];
+          ws['!merges'].push({
+            s: { r: notesRowIndex, c: 0 }, // Start: row notesRowIndex, column A (0)
+            e: { r: notesRowIndex, c: 7 }  // End: row notesRowIndex, column H (7)
+          });
+        }
+        
         alert('Failed to add deployment. Please try again.');
       }
     }
@@ -201,7 +212,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     try {
       await removeDeployment(id);
     } catch (err) {
-      console.error('Error removing deployment:', err);
+          { wch: 12 }, // Break Minutes
+          { wch: 5 }   // Extra column
       alert('Failed to remove deployment. Please try again.');
     }
   };
@@ -370,7 +382,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
           deployment.position || '',
           deployment.secondary || '',
           deployment.cleaning || '',
-          deployment.breakMinutes || 0
+          currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || '', ''
         ]);
       });
       
