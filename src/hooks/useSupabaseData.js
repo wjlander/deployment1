@@ -206,7 +206,7 @@ export const useSupabaseData = () => {
     const { data, error } = await supabase
       .from('shift_info')
       .upsert([{ ...shiftData, date }], { onConflict: 'date' })
-      .select()
+      .select('*')
       .single();
     
     if (error) throw error;
