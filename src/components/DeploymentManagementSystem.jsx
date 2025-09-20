@@ -104,54 +104,63 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       }
       return 0;
     } else {
-      return 15;
-    }
-  };
-
-  const parseSalesData = (dataText) => {
-    const lines = dataText.split('\n').filter(line => line.trim());
+    const lines = data.split('\n').filter(line => line.trim());
     const parsed = [];
-    let totalForecast = '';
-    let dayForecast = '';
-    let nightForecast = '';
+    
+    // Parse time-based forecast data
+    let totalForecast = 0;
+    let dayShiftForecast = 0;
+    let nightShiftForecast = 0;
     
     lines.forEach(line => {
-      const parts = line.split('\t').map(part => part.trim());
+      // Parse tab-separated or comma-separated data
+      const parts = line.split(/\t|,/).map(part => part.trim());
+      
       if (parts.length >= 2) {
-        // Look for forecast data in the sales data
-        if (parts[0].toLowerCase().includes('forecast') || parts[0].toLowerCase().includes('total')) {
-          if (parts[1].includes('£') || parts[1].includes('$')) {
-            totalForecast = parts[1];
-          }
-        }
-        if (parts[0].toLowerCase().includes('day') && (parts[0].toLowerCase().includes('forecast') || parts[0].toLowerCase().includes('shift'))) {
-          if (parts[1].includes('£') || parts[1].includes('$')) {
-            dayForecast = parts[1];
-          }
-        }
-        if (parts[0].toLowerCase().includes('night') && (parts[0].toLowerCase().includes('forecast') || parts[0].toLowerCase().includes('shift'))) {
-          if (parts[1].includes('£') || parts[1].includes('$')) {
-            nightForecast = parts[1];
-          }
-        }
+        const minute = parts[0]; // Time in format like "10:00", "10:15", etc.
+        const forecast = parts[1]; // Forecast value
         
-        parsed.push({
-          time: parts[0],
-          value: parts[1],
-          period: parts[2] || '',
-          total: parseFloat(parts[1].replace(/[£$,]/g, '')) || 0
-        });
+        // Extract numeric value from forecast (remove £, commas, etc.)
+        const forecastMatch = forecast.match(/[\d,]+\.?\d*/);
+        if (forecastMatch && minute.match(/^\d{1,2}:\d{2}$/)) {
+          const forecastValue = parseFloat(forecastMatch[0].replace(/,/g, ''));
+          const [hours, minutes] = minute.split(':').map(Number);
+          const timeInMinutes = hours * 60 + minutes;
+          
+          // Add to parsed data
+          parsed.push({
+            time: minute,
+            forecast: forecast,
+            value: forecastValue
+          });
+          
+          // Calculate totals based on time ranges
+          // Full day: 10:00 to 23:00 (600 to 1380 minutes)
+          if (timeInMinutes >= 600 && timeInMinutes < 1380) {
+            totalForecast += forecastValue;
+            
+            // Day shift: 10:00 to 16:00 (600 to 960 minutes)
+            if (timeInMinutes >= 600 && timeInMinutes < 960) {
+              dayShiftForecast += forecastValue;
+            }
+            // Night shift: 16:00 to 23:00 (960 to 1380 minutes)
+            else if (timeInMinutes >= 960 && timeInMinutes < 1380) {
+              nightShiftForecast += forecastValue;
+            }
+          }
+        }
       }
     });
     
-    // Update shift info forecasts if found in sales data
-    if (totalForecast || dayForecast || nightForecast) {
-      const updates = {};
-      if (totalForecast) updates.forecast = totalForecast;
-      if (dayForecast) updates.dayShiftForecast = dayForecast;
-      if (nightForecast) updates.nightShiftForecast = nightForecast;
-      
-      Object.keys(updates).forEach(key => updateShiftInfo(key, updates[key]));
+    // Update forecasts if we calculated any
+    if (totalForecast > 0) {
+      updateShiftInfo('forecast', `£${totalForecast.toFixed(2)}`);
+    }
+    if (dayShiftForecast > 0) {
+      updateShiftInfo('dayShiftForecast', `£${dayShiftForecast.toFixed(2)}`);
+    }
+    if (nightShiftForecast > 0) {
+      updateShiftInfo('nightShiftForecast', `£${nightShiftForecast.toFixed(2)}`);
     }
     
     return parsed;
