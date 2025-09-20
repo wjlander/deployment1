@@ -104,6 +104,11 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       }
       return 0;
     } else {
+      return 0;
+    }
+  };
+
+  const parseSalesData = (data) => {
     const lines = data.split('\n').filter(line => line.trim());
     const parsed = [];
     
@@ -240,7 +245,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         
         await addDeployment({
           date: selectedDate,
-          start_time: newDeployment.startTime,
+          staff_id: newDeployment.staff_id,
+          start_time: newDeployment.start_time,
           end_time: newDeployment.end_time,
           position: newDeployment.position || '',
           secondary: newDeployment.secondary || '',
@@ -1468,7 +1474,5 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     </div>
   );
 };
-
-export default DeploymentManagementSystem;
 
 export default DeploymentManagementSystem;
