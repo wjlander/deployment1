@@ -171,8 +171,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         
         await addDeployment({
           date: selectedDate,
-          staff_id: newDeployment.staff_id,
-          start_time: newDeployment.start_time,
+          start_time: newDeployment.startTime,
           end_time: newDeployment.end_time,
           position: newDeployment.position || '',
           secondary: newDeployment.secondary || '',
