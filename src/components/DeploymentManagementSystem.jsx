@@ -1071,13 +1071,22 @@ const calculateBreakTime = (staffMember, workHours) => {
     <div className="bg-white shadow-sm rounded-lg overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-800">Deployments - {selectedDate}</h3>
-        <button
-          onClick={exportToPDF}
-          className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Export PDF
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportToPDF}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export PDF
+          </button>
+          <button
+            onClick={exportToExcel}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export Excel
+          </button>
+        </div>
       </div>
       
       <div className="overflow-x-auto">
