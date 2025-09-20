@@ -203,9 +203,19 @@ export const useSupabaseData = () => {
 
   // Shift info operations
   const updateShiftInfo = async (date, shiftData) => {
+    // Ensure we have a proper object with the correct structure
+    const dataToUpsert = {
+      date,
+      forecast: shiftData.forecast || '£0.00',
+      day_shift_forecast: shiftData.day_shift_forecast || shiftData.dayShiftForecast || '£0.00',
+      night_shift_forecast: shiftData.night_shift_forecast || shiftData.nightShiftForecast || '£0.00',
+      weather: shiftData.weather || '',
+      notes: shiftData.notes || ''
+    };
+
     const { data, error } = await supabase
       .from('shift_info')
-      .upsert([{ ...shiftData, date }], { onConflict: 'date' })
+      .upsert([dataToUpsert], { onConflict: 'date' })
       .select('id, date, forecast, day_shift_forecast, night_shift_forecast, weather, notes, created_at, updated_at')
       .single();
     
