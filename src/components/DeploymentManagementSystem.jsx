@@ -334,8 +334,64 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   };
 
   const exportToExcel = () => {
-    // Excel export functionality would go here
-    console.log('Export to Excel functionality to be implemented');
+    try {
+      const wb = XLSX.utils.book_new();
+      
+      // Deployments sheet
+      const deploymentsData = currentDeployments.map(deployment => {
+        const staffMember = staff.find(s => s.id === deployment.staffId);
+        const workHours = calculateWorkHours(deployment.startTime, deployment.endTime);
+        return {
+          'Staff Name': staffMember ? staffMember.name : 'Unknown',
+          'Under 18': staffMember ? (staffMember.isUnder18 ? 'Yes' : 'No') : 'Unknown',
+          'Start Time': deployment.startTime,
+          'End Time': deployment.endTime,
+          'Work Hours': workHours.toFixed(2),
+          'Position': deployment.position,
+          'Secondary': deployment.secondary || '',
+          'Area': deployment.area || '',
+          'Cleaning': deployment.cleaning || '',
+          'Break Minutes': deployment.breakMinutes || 0
+        };
+      });
+      
+      const ws1 = XLSX.utils.json_to_sheet(deploymentsData);
+      XLSX.utils.book_append_sheet(wb, ws1, 'Deployments');
+      
+      // Shift Info sheet
+      const shiftInfoData = [{
+        'Date': currentShiftInfo.date,
+        'Total Forecast': currentShiftInfo.forecast,
+        'Day Shift Forecast': currentShiftInfo.dayShiftForecast,
+        'Night Shift Forecast': currentShiftInfo.nightShiftForecast,
+        'Weather': currentShiftInfo.weather,
+        'Notes': currentShiftInfo.notes
+      }];
+      
+      const ws2 = XLSX.utils.json_to_sheet(shiftInfoData);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Shift Info');
+      
+      // Summary sheet
+      const totalHours = currentDeployments.reduce((sum, d) => {
+        return sum + calculateWorkHours(d.startTime, d.endTime);
+      }, 0);
+      
+      const summaryData = [{
+        'Total Staff': currentDeployments.length,
+        'Total Work Hours': totalHours.toFixed(2),
+        'Average Hours per Staff': currentDeployments.length > 0 ? (totalHours / currentDeployments.length).toFixed(2) : '0',
+        'Under 18 Staff': staff.filter(s => currentDeployments.some(d => d.staffId === s.id) && s.isUnder18).length
+      }];
+      
+      const ws3 = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, ws3, 'Summary');
+      
+      // Save file
+      XLSX.writeFile(wb, `deployment-${selectedDate.replace(/\//g, '-')}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Error exporting to Excel. Please try again.');
+    }
   };
 
   const parseHourlySalesData = (data) => {
