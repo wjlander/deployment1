@@ -371,10 +371,10 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       XLSX.utils.book_append_sheet(wb, ws2, 'Shift Info');
       
       // Summary sheet
-      const totalHours = currentDeployments.reduce((total, deployment) => {
+      const totalHours = currentDeployments.reduce((sum, deployment) => {
         const workHours = deployment.start_time && deployment.end_time ? 
           calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
-        return total + workHours;
+        return sum + workHours;
       }, 0);
       
       const summaryData = [{
