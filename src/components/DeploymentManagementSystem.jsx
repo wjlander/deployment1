@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Clock, Users, Calendar, Settings, Save, Download, TrendingUp, FileText, Copy, CalendarDays, Edit2, LogOut, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { useSupabaseData } from '../hooks/useSupabaseData';
 
 const DeploymentManagementSystem = ({ onLogout }) => {
   // Call useSupabaseData hook first, before any other hooks
