@@ -706,7 +706,6 @@ const calculateBreakTime = (staffMember, workHours) => {
   const exportToExcel = (exportType = 'all') => {
     const currentDeployments = deploymentsByDate[selectedDate] || [];
     const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
-    
     if (currentDeployments.length === 0) {
       alert('No deployments to export for this date');
       return;
@@ -736,21 +735,38 @@ const calculateBreakTime = (staffMember, workHours) => {
     }
 
     // Sort deployments by start time
-    deploymentsToExport = [...deploymentsToExport].sort((a, b) => {
-      const timeA = a.start_time.split(':').map(Number);
-      const timeB = b.start_time.split(':').map(Number);
-      const minutesA = timeA[0] * 60 + timeA[1];
-      const minutesB = timeB[0] * 60 + timeB[1];
-      return minutesA - minutesB;
-    });
-
-    // Get day name from date
-    const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
-    const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
+    // Header section - Row 1: Day | Date | Total Forecast | Weather
+    ws_data.push([
+      'Day', 
+      '', 
+      'Date', 
+      '', 
+      'Total Forecast', 
+      currentShiftInfo.forecast || '£0.00', 
+      'Weather'
+    ]);
     
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws_data = [];
+    // Header section - Row 2: Saturday | 2025-09-20 | Night Shift Forecast | Weather value
+    ws_data.push([
+      dayName, 
+      '', 
+      selectedDate, 
+      '', 
+      'Night Shift Forecast', 
+      currentShiftInfo.night_shift_forecast || '£0.00', 
+      currentShiftInfo.weather || ''
+    ]);
+    
+    // Header section - Row 3: Day Shift Forecast
+    ws_data.push([
+      '', 
+      '', 
+      '', 
+      '', 
+      'Day Shift Forecast', 
+      currentShiftInfo.day_shift_forecast || '£0.00', 
+      ''
+    ]);
 
     // Header section - Row 1: Day, Date, Total Forecast, Weather
     ws_data.push(['Day', '', 'Date', '', 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather']);
@@ -784,7 +800,7 @@ const calculateBreakTime = (staffMember, workHours) => {
       'Break Minutes'
     ]);
     
-    // Staff deployment data
+    // Staff deployment data - sorted by start time
     deploymentsToExport.forEach(deployment => {
       const staffMember = staff.find(s => s.id === deployment.staff_id);
       const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
@@ -838,7 +854,7 @@ const calculateBreakTime = (staffMember, workHours) => {
       { wch: 12 }  // Break Minutes
     ];
     
-    // Add worksheet to workbook
+    // Add single worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Deployment');
     
     // Generate filename with date
