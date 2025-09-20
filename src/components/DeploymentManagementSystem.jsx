@@ -231,15 +231,6 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         
         await updateShiftInfo(newDate, newShiftInfo);
         
-        // Force re-render by updating local state
-        setShiftInfoByDate(prev => ({
-          ...prev,
-          [newDate]: {
-            date: newDate,
-            ...newShiftInfo
-          }
-        }));
-        
         setSelectedDate(newDate);
         setNewDate('');
         setShowNewDateModal(false);
