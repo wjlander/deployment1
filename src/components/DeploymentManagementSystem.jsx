@@ -713,7 +713,7 @@ const calculateBreakTime = (staffMember, workHours) => {
     }
 
     // Filter deployments based on export type
-    let deploymentsToExport = currentDeployments;
+    deploymentsToExport = currentDeployments;
     if (exportType === 'day') {
       deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Day Shift');
     } else if (exportType === 'night') {
@@ -728,7 +728,7 @@ const calculateBreakTime = (staffMember, workHours) => {
     });
 
     // Filter deployments based on export type
-    let deploymentsToExport = currentDeployments;
+    deploymentsToExport = currentDeployments;
     if (exportType === 'day') {
       deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Day Shift');
     } else if (exportType === 'night') {
@@ -845,8 +845,6 @@ const calculateBreakTime = (staffMember, workHours) => {
     const typeStr = exportType === 'all' ? 'All-Shifts' : 
                     exportType === 'day' ? 'Day-Shift' : 'Night-Shift';
     const filename = `Deployment_${selectedDate.replace(/\//g, '-')}_${typeStr}.xlsx`;
-                    exportType === 'day' ? '_Day-Shift' : '_Night-Shift';
-    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}${typeStr}.xlsx`;
     
     // Save file
     XLSX.writeFile(wb, filename);
