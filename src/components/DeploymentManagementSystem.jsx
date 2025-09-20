@@ -512,90 +512,117 @@ const calculateBreakTime = (staffMember, workHours) => {
   };
 
   const exportToExcel = () => {
-    try {
-      // Get current shift info with calculated forecasts
-      const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
-      const forecastTotals = calculateForecastTotals(selectedDate);
-      
-      const wb = XLSX.utils.book_new();
-      
-      // Get day of week from date
-      const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
-      const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-      const formattedDate = dateObj.toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      });
-      
-      // Create the data array starting with header information
-      const wsData = [
-        ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', `£${forecastTotals.total.toFixed(2)}`, 'Weather', currentShiftInfo.weather || '', ''],
-        ['', '', 'Day Shift Forecast', `£${forecastTotals.dayShift.toFixed(2)}`, 
-          'Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, '', '', ''],
-        ['', '', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', '', ''],
-        ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Closing', 'Break Minutes', '']
-      ];
-      
-      // Add deployment data
-      currentDeployments.forEach(deployment => {
-        const staffMember = staff.find(s => s.id === deployment.staff_id);
-        const staffName = staffMember ? staffMember.name : 'Unknown';
-        const workHours = deployment.start_time && deployment.end_time ? 
-          calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
-        
-        wsData.push([
-          staffName,
-          deployment.start_time || '',
-          deployment.end_time || '',
-          workHours.toFixed(2),
-          deployment.position || '',
-          deployment.secondary || '',
-          deployment.closing || '',
-          deployment.break_minutes || 0,
-          ''
-        ]);
-      });
-      
-      // Add empty rows and targets/notes section
-      wsData.push(['', '', '', '', '', '', '', '', '']);
-      wsData.push(['', '', '', '', '', '', '', '', '']);
-      
-      // Add notes section
-      const notesRowIndex = wsData.length;
-      wsData.push(['Notes:', '', '', '', '', '', '', '', '']);
-      wsData.push([currentShiftInfo.notes || '', '', '', '', '', '', '', '', '']);
-      
-      // Create worksheet
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      
-      // Set column widths
-      ws['!cols'] = [
-        { wch: 15 }, // A - Staff Name
-        { wch: 12 }, // B - Start Time
-        { wch: 12 }, // C - End Time
-        { wch: 12 }, // D - Work Hours
-        { wch: 15 }, // E - Position
-        { wch: 15 }, // F - Secondary
-        { wch: 15 }, // G - Closing
-        { wch: 15 }, // H - Break Minutes
-        { wch: 10 }  // I - Extra column
-      ];
-      
-      // Merge cells for notes (2 rows, A to H)
-      ws['!merges'] = [
-        { s: { r: notesRowIndex + 1, c: 0 }, e: { r: notesRowIndex + 2, c: 7 } }
-      ];
-      
-      XLSX.utils.book_append_sheet(wb, ws, 'Deployment Schedule');
-      
-      // Save file
-      XLSX.writeFile(wb, `deployment-${selectedDate.replace(/\//g, '-')}.xlsx`);
-    } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      alert('Error exporting to Excel. Please try again.');
+    const currentDeployments = deploymentsByDate[selectedDate] || [];
+    const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
+    const forecastTotals = calculateForecastTotals(selectedDate);
+    
+    if (currentDeployments.length === 0) {
+      alert('No deployments to export for this date');
+      return;
     }
+
+    // Get day name from date
+    const dateObj = new Date(selectedDate.split('/').reverse().join('-'));
+    const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
+    
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws_data = [];
+
+    // Header section - Row 1
+    ws_data.push(['Day', '', 'Date', '', 'Total Forecast', `£${forecastTotals.total.toFixed(2)}`, 'Weather']);
+    
+    // Header section - Row 2  
+    ws_data.push([
+      dayName, 
+      '', 
+      selectedDate, 
+      '', 
+      `Night Shift Forecast £${forecastTotals.nightShift.toFixed(2)}`, 
+      '', 
+      currentShiftInfo.weather || ''
+    ]);
+    
+    // Header section - Row 3
+    ws_data.push(['', '', '', '', `Day Shift Forecast £${forecastTotals.dayShift.toFixed(2)}`, '', '']);
+    
+    // Empty row
+    ws_data.push(['']);
+    
+    // Column headers
+    ws_data.push([
+      'Staff Name',
+      'Start Time',
+      'End Time', 
+      'Work Hours',
+      'Position',
+      'Secondary',
+      'Closing',
+      'Break Minutes'
+    ]);
+    
+    // Staff deployment data
+    currentDeployments.forEach(deployment => {
+      const staffMember = staff.find(s => s.id === deployment.staff_id);
+      const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
+      
+      ws_data.push([
+        staffMember ? staffMember.name : 'Unknown',
+        deployment.start_time,
+        deployment.end_time,
+        workHours.toFixed(2),
+        deployment.position,
+        deployment.secondary || '',
+        deployment.closing || '',
+        deployment.break_minutes || 0
+      ]);
+    });
+
+    // Empty row before notes
+    ws_data.push(['']);
+    
+    // Add targets if they exist
+    if (targets && targets.length > 0) {
+      ws_data.push(['Targets:']);
+      targets.forEach(target => {
+        ws_data.push(['', `${target.name}: ${target.value}`]);
+      });
+      ws_data.push(['']); // Empty row after targets
+    }
+    
+    // Add notes
+    ws_data.push(['Notes:']);
+    if (currentShiftInfo.notes) {
+      // Split notes into multiple lines if they're long
+      const noteLines = currentShiftInfo.notes.match(/.{1,80}(\s|$)/g) || [currentShiftInfo.notes];
+      noteLines.forEach(line => {
+        ws_data.push(['', line.trim()]);
+      });
+    }
+    
+    // Create worksheet from array of arrays
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 15 }, // Staff Name
+      { wch: 10 }, // Start Time
+      { wch: 10 }, // End Time
+      { wch: 10 }, // Work Hours
+      { wch: 15 }, // Position
+      { wch: 15 }, // Secondary
+      { wch: 15 }, // Closing
+      { wch: 12 }  // Break Minutes
+    ];
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Deployment');
+    
+    // Generate filename with date
+    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
   };
 
   const parseHourlySalesData = (data) => {
