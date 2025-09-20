@@ -6,6 +6,7 @@ export const useSupabaseData = () => {
   const [positions, setPositions] = useState([]);
   const [deploymentsByDate, setDeploymentsByDate] = useState({});
   const [shiftInfoByDate, setShiftInfoByDate] = useState({});
+  const [salesRecordsByDate, setSalesRecordsByDate] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,7 +22,8 @@ export const useSupabaseData = () => {
         loadStaff(),
         loadPositions(),
         loadDeployments(),
-        loadShiftInfo()
+        loadShiftInfo(),
+        loadSalesRecords()
       ]);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -93,6 +95,27 @@ export const useSupabaseData = () => {
     });
     
     setShiftInfoByDate(grouped);
+  };
+
+  const loadSalesRecords = async () => {
+    const { data, error } = await supabase
+      .from('sales_records')
+      .select('*')
+      .order('date', { ascending: false })
+      .order('time');
+    
+    if (error) throw error;
+    
+    // Group sales records by date
+    const grouped = {};
+    data?.forEach(record => {
+      if (!grouped[record.date]) {
+        grouped[record.date] = [];
+      }
+      grouped[record.date].push(record);
+    });
+    
+    setSalesRecordsByDate(grouped);
   };
 
   // Staff operations
@@ -244,6 +267,74 @@ export const useSupabaseData = () => {
     });
   };
 
+  // Sales records operations
+  const updateSalesRecords = async (date, records) => {
+    // Delete existing records for this date
+    await supabase
+      .from('sales_records')
+      .delete()
+      .eq('date', date);
+    
+    // Insert new records
+    if (records && records.length > 0) {
+      const recordsToInsert = records.map(record => ({
+        date,
+        time: record.time,
+        forecast: parseFloat(record.forecast) || 0
+      }));
+      
+      const { data, error } = await supabase
+        .from('sales_records')
+        .insert(recordsToInsert)
+        .select('*');
+      
+      if (error) throw error;
+      
+      setSalesRecordsByDate(prev => ({
+        ...prev,
+        [date]: data
+      }));
+      
+      return data;
+    } else {
+      // No records to insert, just clear from state
+      setSalesRecordsByDate(prev => {
+        const updated = { ...prev };
+        delete updated[date];
+        return updated;
+      });
+    }
+  };
+
+  const calculateForecastTotals = (date) => {
+    const records = salesRecordsByDate[date] || [];
+    
+    let totalForecast = 0;
+    let dayShiftForecast = 0;
+    let nightShiftForecast = 0;
+    
+    records.forEach(record => {
+      const forecast = parseFloat(record.forecast) || 0;
+      totalForecast += forecast;
+      
+      // Parse time to determine if it's day or night shift
+      const [hours] = record.time.split(':').map(Number);
+      
+      // Assuming day shift is 6:00-18:00, night shift is 18:00-6:00
+      if (hours >= 6 && hours < 18) {
+        dayShiftForecast += forecast;
+      } else {
+        nightShiftForecast += forecast;
+      }
+    });
+    
+    return {
+      total: totalForecast,
+      dayShift: dayShiftForecast,
+      nightShift: nightShiftForecast
+    };
+  };
+
   // Position operations
   const addPosition = async (positionData) => {
     const { data, error } = await supabase
@@ -360,6 +451,7 @@ export const useSupabaseData = () => {
     positions,
     deploymentsByDate,
     shiftInfoByDate,
+    salesRecordsByDate,
     loading,
     error,
     
@@ -376,6 +468,10 @@ export const useSupabaseData = () => {
     // Shift info operations
     updateShiftInfo,
     deleteShiftInfo,
+    
+    // Sales records operations
+    updateSalesRecords,
+    calculateForecastTotals,
     
     // Position operations
     addPosition,
