@@ -338,22 +338,19 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     try {
       const wb = XLSX.utils.book_new();
       
-       const workHours = deployment.startTime && deployment.endTime ? 
-         calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
       const deploymentsData = currentDeployments.map(deployment => {
-        const staffMember = staff.find(s => s.id === deployment.staffId);
-        const workHours = calculateWorkHours(deployment.startTime, deployment.endTime);
+        const staffMember = staff.find(s => s.id === deployment.staff_id);
+        const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
         return {
           'Staff Name': staffMember ? staffMember.name : 'Unknown',
-         'Start Time': deployment.startTime || '',
-         'End Time': deployment.endTime || '',
-          'End Time': deployment.endTime,
+          'Start Time': deployment.start_time || '',
+          'End Time': deployment.end_time || '',
           'Work Hours': workHours.toFixed(2),
-         'Position': deployment.position || '',
-         'Secondary': deployment.secondary || '',
-         'Area': deployment.area || '',
-         'Cleaning': deployment.cleaning || '',
-          'Break Minutes': deployment.breakMinutes || 0
+          'Position': deployment.position || '',
+          'Secondary': deployment.secondary || '',
+          'Area': deployment.area || '',
+          'Cleaning': deployment.cleaning || '',
+          'Break Minutes': deployment.break_minutes || 0
         };
       });
       
@@ -363,28 +360,28 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       // Shift Info sheet
       const shiftInfoData = [{
         'Date': currentShiftInfo.date,
-        'Total Forecast': currentShiftInfo.forecast,
-        'Day Shift Forecast': currentShiftInfo.dayShiftForecast,
-        'Night Shift Forecast': currentShiftInfo.nightShiftForecast,
-        'Weather': currentShiftInfo.weather,
-       'Total Forecast': currentShiftInfo.forecast || '£0.00',
-       'Day Shift Forecast': currentShiftInfo.dayShiftForecast || '£0.00',
-       'Night Shift Forecast': currentShiftInfo.nightShiftForecast || '£0.00',
-       'Weather': currentShiftInfo.weather || '',
-       'Notes': currentShiftInfo.notes || ''
+        'Total Forecast': currentShiftInfo.forecast || '£0.00',
+        'Day Shift Forecast': currentShiftInfo.day_shift_forecast || '£0.00',
+        'Night Shift Forecast': currentShiftInfo.night_shift_forecast || '£0.00',
+        'Weather': currentShiftInfo.weather || '',
+        'Notes': currentShiftInfo.notes || ''
+      }];
+      
+      const ws2 = XLSX.utils.json_to_sheet(shiftInfoData);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Shift Info');
       
       // Summary sheet
-      const totalHours = currentDeployments.reduce((sum, deployment) => {
-        const workHours = deployment.startTime && deployment.endTime ? 
-          calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
-        return sum + workHours;
+      const totalHours = currentDeployments.reduce((total, deployment) => {
+        const workHours = deployment.start_time && deployment.end_time ? 
+          calculateWorkHours(deployment.start_time, deployment.end_time) : 0;
+        return total + workHours;
       }, 0);
       
       const summaryData = [{
         'Total Staff': currentDeployments.length,
         'Total Work Hours': totalHours.toFixed(2),
         'Average Hours per Staff': currentDeployments.length > 0 ? (totalHours / currentDeployments.length).toFixed(2) : '0',
-        'Under 18 Staff': staff.filter(s => currentDeployments.some(d => d.staffId === s.id) && s.isUnder18).length
+        'Under 18 Staff': staff.filter(s => currentDeployments.some(d => d.staff_id === s.id) && s.is_under_18).length
       }];
       
       const ws3 = XLSX.utils.json_to_sheet(summaryData);
