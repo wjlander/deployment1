@@ -349,8 +349,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       // Create the data array starting with header information
       const wsData = [
         ['Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather', currentShiftInfo.weather || '', ''],
-        ['', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', 
-          'Night Shift Forecast', currentShiftInfo.night_shift_forecast || '£0.00', '', '', ''],
+        ['', '', 'Day Shift Forecast', currentShiftInfo.dayShiftForecast || '£0.00', 
+          'Night Shift Forecast', currentShiftInfo.nightShiftForecast || '£0.00', '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['', '', '', '', '', '', '', '', ''],
         ['Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Cleaning', 'Break Minutes', '']
