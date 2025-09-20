@@ -121,7 +121,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         ...prev,
         [field]: value
       }));
-      
+            const updatedShiftInfo = {
       // Parse and update forecasts when sales data changes
       if (field === 'today_data') {
         const parsed = parseSalesData(value);
@@ -136,7 +136,20 @@ const DeploymentManagementSystem = ({ onLogout }) => {
             forecast: totalForecast,
             day_shift_forecast: dayForecast,
             night_shift_forecast: nightForecast
-          });
+            };
+            
+            await updateShiftInfo(selectedDate, updatedShiftInfo);
+            
+            // Force local state update
+            setShiftInfoByDate(prev => ({
+              ...prev,
+              [selectedDate]: {
+                ...prev[selectedDate],
+                forecast: totalForecast,
+                day_shift_forecast: dayForecast,
+                night_shift_forecast: nightForecast
+              }
+            }));
         }
       }
       
@@ -231,13 +244,25 @@ const DeploymentManagementSystem = ({ onLogout }) => {
   const createNewDate = async () => {
     if (newDate && !deploymentsByDate[newDate]) {
       try {
-        await updateShiftInfo(newDate, {
+        const newShiftInfo = {
           forecast: '£0.00',
           day_shift_forecast: '£0.00',
           night_shift_forecast: '£0.00',
           weather: '',
           notes: ''
-        });
+        };
+        
+        await updateShiftInfo(newDate, newShiftInfo);
+        
+        // Force re-render by updating local state
+        setShiftInfoByDate(prev => ({
+          ...prev,
+          [newDate]: {
+            date: newDate,
+            ...newShiftInfo
+          }
+        }));
+        
         setSelectedDate(newDate);
         setNewDate('');
         setShowNewDateModal(false);
@@ -930,7 +955,7 @@ const DeploymentManagementSystem = ({ onLogout }) => {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                  </td>
+              {Object.keys(shiftInfoByDate).sort().reverse().map(date => (
                 </tr>
               ))}
             </tbody>
