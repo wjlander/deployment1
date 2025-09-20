@@ -1553,6 +1553,83 @@ const calculateBreakTime = (staffMember, workHours) => {
     </div>
   );
 
+  const renderReportsPage = () => {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Reports</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Staff Hours Report */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Staff Hours Report</h3>
+              <p className="text-gray-600 mb-4">Generate detailed reports of staff working hours by date range.</p>
+              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Position Coverage Report */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Position Coverage</h3>
+              <p className="text-gray-600 mb-4">Analyze position coverage and identify gaps in scheduling.</p>
+              <button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Sales vs Forecast Report */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Sales vs Forecast</h3>
+              <p className="text-gray-600 mb-4">Compare actual sales performance against forecasts.</p>
+              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Labor Cost Analysis */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Labor Cost Analysis</h3>
+              <p className="text-gray-600 mb-4">Analyze labor costs and efficiency metrics.</p>
+              <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Under 18 Compliance */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Under 18 Compliance</h3>
+              <p className="text-gray-600 mb-4">Monitor compliance with under 18 working hour regulations.</p>
+              <button className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Generate Report
+              </button>
+            </div>
+
+            {/* Custom Report Builder */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Custom Report Builder</h3>
+              <p className="text-gray-600 mb-4">Build custom reports with your own criteria and filters.</p>
+              <button className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Build Report
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-lg font-semibold text-blue-800 mb-2">Report Features</h4>
+            <ul className="text-blue-700 space-y-1">
+              <li>• Export to Excel, PDF, or CSV formats</li>
+              <li>• Schedule automated report generation</li>
+              <li>• Email reports to management team</li>
+              <li>• Historical data comparison</li>
+              <li>• Interactive charts and graphs</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Main render
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -1582,7 +1659,7 @@ const calculateBreakTime = (staffMember, workHours) => {
         {currentPage === 'staff' && renderStaffManagement()}
         {currentPage === 'positions' && renderPositionManagement()}
         {currentPage === 'sales' && renderSalesData()}
-        {currentPage === 'reports' && renderReports()}
+        {currentPage === 'reports' && renderReportsPage()}
 
           {/* Targets Management Page */}
           {currentPage === 'targets' && (
