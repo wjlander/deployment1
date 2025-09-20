@@ -334,6 +334,8 @@ const DeploymentManagementSystem = ({ onLogout }) => {
     window.print();
   };
 
+  const exportToExcel = () => {
+    try {
       const wb = XLSX.utils.book_new();
       
       // Get day of week from date
@@ -392,95 +394,6 @@ const DeploymentManagementSystem = ({ onLogout }) => {
         { wch: 12 }  // Break Minutes
       ];
       
-      XLSX.utils.book_append_sheet(wb, ws, 'Deployment Schedule');
-      
-      // Save file
-      XLSX.writeFile(wb, `deployment-${selectedDate.replace(/\//g, '-')}.xlsx`);
-    } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      alert('Error exporting to Excel. Please try again.');
-    }
-  };
-
-  const exportToExcel = () => {
-    try {
-      // Create workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      
-      // Prepare data array
-      const data = [];
-      
-      // Header row with day, date, total forecast, weather
-      const dayOfWeek = new Date(selectedDate.split('/').reverse().join('-')).toLocaleDateString('en-US', { weekday: 'long' });
-      const formattedDate = new Date(selectedDate.split('/').reverse().join('-')).toLocaleDateString('en-US', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      });
-      
-      data.push([
-        'Day', dayOfWeek, 'Date', formattedDate, 'Total Forecast', currentShiftInfo.forecast || '£0.00', '', 'Weather', currentShiftInfo.weather || ''
-      ]);
-      
-      // Second row with day/night shift forecasts
-      data.push([
-        '', '', 'Day Shift Forecast', currentShiftInfo.dayShiftForecast || '£0.00', 'Night Shift Forecast', currentShiftInfo.nightShiftForecast || '£0.00'
-      ]);
-      
-      // Empty rows for spacing
-      data.push([]);
-      data.push([]);
-      
-      // Column headers
-      data.push([
-        'Staff Name', 'Start Time', 'End Time', 'Work Hours', 'Position', 'Secondary', 'Area', 'Cleaning', 'Break Minutes'
-      ]);
-      
-      // Staff deployment data
-      currentDeployments.forEach(deployment => {
-        const staffMember = staff.find(s => s.id === deployment.staffId);
-        const workHours = deployment.startTime && deployment.endTime ? 
-          calculateWorkHours(deployment.startTime, deployment.endTime) : 0;
-        
-        data.push([
-          staffMember ? staffMember.name : 'Unknown',
-          deployment.startTime || '',
-          deployment.endTime || '',
-          workHours.toFixed(2),
-          deployment.position || '',
-          deployment.secondary || '',
-          deployment.area || '',
-          deployment.cleaning || '',
-          deployment.breakMinutes || 0
-        ]);
-      });
-      
-      // Empty rows before notes
-      data.push([]);
-      data.push([]);
-      
-      // Notes section
-      if (currentShiftInfo.notes) {
-        data.push(['Notes:', currentShiftInfo.notes]);
-      }
-      
-      // Create worksheet
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      
-      // Set column widths
-      ws['!cols'] = [
-        { wch: 15 }, // Staff Name
-        { wch: 10 }, // Start Time
-        { wch: 10 }, // End Time
-        { wch: 12 }, // Work Hours
-        { wch: 15 }, // Position
-        { wch: 15 }, // Secondary
-        { wch: 20 }, // Area
-        { wch: 15 }, // Cleaning
-        { wch: 12 }  // Break Minutes
-      ];
-      
-      // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, 'Deployment Schedule');
       
       // Save file
