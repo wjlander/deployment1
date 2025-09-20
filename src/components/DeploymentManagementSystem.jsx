@@ -706,12 +706,26 @@ const calculateBreakTime = (staffMember, workHours) => {
   const exportToExcel = (exportType = 'all') => {
     const currentDeployments = deploymentsByDate[selectedDate] || [];
     const currentShiftInfo = shiftInfoByDate[selectedDate] || {};
-    const forecastTotals = calculateForecastTotals(selectedDate);
     
     if (currentDeployments.length === 0) {
       alert('No deployments to export for this date');
       return;
     }
+
+    // Filter deployments based on export type
+    let deploymentsToExport = currentDeployments;
+    if (exportType === 'day') {
+      deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Day Shift');
+    } else if (exportType === 'night') {
+      deploymentsToExport = currentDeployments.filter(d => d.shift_type === 'Night Shift');
+    }
+
+    // Sort deployments by start time
+    deploymentsToExport.sort((a, b) => {
+      const timeA = a.start_time.split(':').map(Number);
+      const timeB = b.start_time.split(':').map(Number);
+      return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+    });
 
     // Filter deployments based on export type
     let deploymentsToExport = currentDeployments;
@@ -738,21 +752,22 @@ const calculateBreakTime = (staffMember, workHours) => {
     const wb = XLSX.utils.book_new();
     const ws_data = [];
 
-    // Header section - Row 1
-    ws_data.push(['Day', '', 'Date', '', 'Total Forecast', `£${forecastTotals.total.toFixed(2)}`, 'Weather']);
+    // Header section - Row 1: Day, Date, Total Forecast, Weather
+    ws_data.push(['Day', '', 'Date', '', 'Total Forecast', currentShiftInfo.forecast || '£0.00', 'Weather']);
     
-    // Header section - Row 2  
+    // Header section - Row 2: Day name, Date, Night Shift Forecast, Weather value
     ws_data.push([
       dayName, 
       '', 
       selectedDate, 
-      '', 'Day Shift Forecast', `£${forecastTotals.dayShift.toFixed(2)}`, 
-       
+      '', 
+      'Night Shift Forecast', 
+      currentShiftInfo.night_shift_forecast || '£0.00', 
       currentShiftInfo.weather || ''
     ]);
     
-    // Header section - Row 3
-    ws_data.push(['', '', '', '','Night Shift Forecast', `£${forecastTotals.nightShift.toFixed(2)}`, '', '']);
+    // Header section - Row 3: Day Shift Forecast
+    ws_data.push(['', '', '', '', 'Day Shift Forecast', currentShiftInfo.day_shift_forecast || '£0.00', '', '']);
     
     // Empty row
     ws_data.push(['']);
@@ -827,7 +842,9 @@ const calculateBreakTime = (staffMember, workHours) => {
     XLSX.utils.book_append_sheet(wb, ws, 'Deployment');
     
     // Generate filename with date
-    const typeStr = exportType === 'all' ? '' : 
+    const typeStr = exportType === 'all' ? 'All-Shifts' : 
+                    exportType === 'day' ? 'Day-Shift' : 'Night-Shift';
+    const filename = `Deployment_${selectedDate.replace(/\//g, '-')}_${typeStr}.xlsx`;
                     exportType === 'day' ? '_Day-Shift' : '_Night-Shift';
     const filename = `Deployment_${selectedDate.replace(/\//g, '-')}${typeStr}.xlsx`;
     
