@@ -379,32 +379,31 @@ const DeploymentManagementSystem = ({ onLogout }) => {
       // Add empty rows and targets/notes section
       wsData.push(['', '', '', '', '', '', '', '', '']);
       wsData.push(['', '', '', '', '', '', '', '', '']);
-      wsData.push([currentShiftInfo.notes, '', '', '', '', '', '', '', '']);
       
-      // Create worksheet from array
+      // Add notes section
+      const notesRowIndex = wsData.length;
+      wsData.push(['Notes:', '', '', '', '', '', '', '', '']);
+      wsData.push([currentShiftInfo.notes || '', '', '', '', '', '', '', '', '']);
+      
+      // Create worksheet
       const ws = XLSX.utils.aoa_to_sheet(wsData);
-      
-      // Merge cells for notes if notes exist
-      if (currentShiftInfo.notes) {
-        const notesRowIndex = wsData.length - 1; // Last row with notes
-        ws['!merges'] = ws['!merges'] || [];
-        ws['!merges'].push({
-          s: { r: notesRowIndex, c: 0 }, // Start: row notesRowIndex, column A (0)
-          e: { r: notesRowIndex, c: 7 }  // End: row notesRowIndex, column H (7)
-        });
-      }
       
       // Set column widths
       ws['!cols'] = [
-        { wch: 15 }, // Staff Name
-        { wch: 10 }, // Start Time
-        { wch: 10 }, // End Time
-        { wch: 12 }, // Work Hours
-        { wch: 15 }, // Position
-        { wch: 15 }, // Secondary
-        { wch: 15 }, // Cleaning
-        { wch: 12 }, // Break Minutes
-        { wch: 5 }   // Extra column
+        { wch: 15 }, // A - Staff Name
+        { wch: 12 }, // B - Start Time
+        { wch: 12 }, // C - End Time
+        { wch: 12 }, // D - Work Hours
+        { wch: 15 }, // E - Position
+        { wch: 15 }, // F - Secondary
+        { wch: 15 }, // G - Cleaning
+        { wch: 15 }, // H - Break Minutes
+        { wch: 10 }  // I - Extra column
+      ];
+      
+      // Merge cells for notes (2 rows, A to H)
+      ws['!merges'] = [
+        { s: { r: notesRowIndex + 1, c: 0 }, e: { r: notesRowIndex + 2, c: 7 } }
       ];
       
       XLSX.utils.book_append_sheet(wb, ws, 'Deployment Schedule');
