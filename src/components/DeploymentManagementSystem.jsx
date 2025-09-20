@@ -590,6 +590,110 @@ const calculateBreakTime = (staffMember, workHours) => {
     window.print();
   };
 
+  const handleExcelExport = (type) => {
+    try {
+      const deployments = deploymentsByDate[selectedDate] || [];
+      const shiftInfo = shiftInfoByDate[selectedDate];
+      
+      // Filter deployments based on type
+      let deploymentsToExport = [];
+      let sheetName = '';
+      
+      switch (type) {
+        case 'day':
+          deploymentsToExport = deployments.filter(d => d.shift_type === 'Day Shift');
+          sheetName = 'Day Shift';
+          break;
+        case 'night':
+          deploymentsToExport = deployments.filter(d => d.shift_type === 'Night Shift');
+          sheetName = 'Night Shift';
+          break;
+        case 'all':
+        default:
+          deploymentsToExport = deployments;
+          sheetName = 'All Deployments';
+          break;
+      }
+      
+      const wb = XLSX.utils.book_new();
+      
+      // Function to create deployment data
+      const createDeploymentData = (deployments, includeClosing = true) => {
+        return deployments.map(deployment => {
+          const staffMember = staff.find(s => s.id === deployment.staff_id);
+          const workHours = calculateWorkHours(deployment.start_time, deployment.end_time);
+          
+          const baseData = {
+            'Staff Name': staffMember?.name || 'Unknown',
+            'Start Time': deployment.start_time,
+            'End Time': deployment.end_time,
+            'Work Hours': workHours.toFixed(1),
+            'Position': deployment.position,
+            'Secondary': deployment.secondary || '',
+            'Area': deployment.area || '',
+            'Break (mins)': deployment.break_minutes || 0
+          };
+          
+          // Include closing position for night shift or all deployments
+          if (includeClosing && (type === 'night' || type === 'all')) {
+            baseData['Closing Position'] = deployment.closing || '';
+          }
+          
+          return baseData;
+        });
+      };
+      
+      if (type === 'all') {
+        // Create separate sheets for day and night shifts
+        const dayShiftDeployments = deployments.filter(d => d.shift_type === 'Day Shift');
+        const nightShiftDeployments = deployments.filter(d => d.shift_type === 'Night Shift');
+        
+        if (dayShiftDeployments.length > 0) {
+          const dayShiftData = createDeploymentData(dayShiftDeployments, false);
+          const dayShiftWS = XLSX.utils.json_to_sheet(dayShiftData);
+          XLSX.utils.book_append_sheet(wb, dayShiftWS, 'Day Shift');
+        }
+        
+        if (nightShiftDeployments.length > 0) {
+          const nightShiftData = createDeploymentData(nightShiftDeployments, true);
+          const nightShiftWS = XLSX.utils.json_to_sheet(nightShiftData);
+          XLSX.utils.book_append_sheet(wb, nightShiftWS, 'Night Shift');
+        }
+      } else {
+        // Create single sheet for specific shift
+        const deploymentData = createDeploymentData(deploymentsToExport, type === 'night');
+        const ws = XLSX.utils.json_to_sheet(deploymentData);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      }
+      
+      // Add shift info sheet if available
+      if (shiftInfo) {
+        const shiftInfoData = [
+          { 'Field': 'Date', 'Value': shiftInfo.date },
+          { 'Field': 'Forecast', 'Value': shiftInfo.forecast },
+          { 'Field': 'Day Shift Forecast', 'Value': shiftInfo.day_shift_forecast },
+          { 'Field': 'Night Shift Forecast', 'Value': shiftInfo.night_shift_forecast },
+          { 'Field': 'Weather', 'Value': shiftInfo.weather },
+          { 'Field': 'Notes', 'Value': shiftInfo.notes }
+        ];
+        
+        const shiftInfoWS = XLSX.utils.json_to_sheet(shiftInfoData);
+        XLSX.utils.book_append_sheet(wb, shiftInfoWS, 'Shift Info');
+      }
+      
+      const filename = `deployment-${selectedDate.replace(/\//g, '-')}-${type}.xlsx`;
+      XLSX.writeFile(wb, filename);
+    } catch (err) {
+      console.error('Failed to export to Excel:', err);
+    }
+  };
+
+  const handlePDFExport = (type) => {
+    // Store the current type for PDF export
+    window.exportType = type;
+    window.print();
+  };
+
   const exportToExcel = () => {
     try {
       const deployments = deploymentsByDate[selectedDate] || [];
@@ -1751,6 +1855,77 @@ const calculateBreakTime = (staffMember, workHours) => {
             {renderDateSelector()}
             {renderShiftInfo()}
             {renderDeploymentForm()}
+            
+            {/* Export and Actions */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Export & Actions</h3>
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleExcelExport('all')}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export All to Excel
+                  </button>
+                  
+                  <button
+                    onClick={() => handleExcelExport('day')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export Day Shift
+                  </button>
+                  
+                  <button
+                    onClick={() => handleExcelExport('night')}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export Night Shift
+                  </button>
+                  
+                  <button
+                    onClick={() => handlePDFExport('all')}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Export All to PDF
+                  </button>
+                  
+                  <button
+                    onClick={() => handlePDFExport('day')}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Export Day PDF
+                  </button>
+                  
+                  <button
+                    onClick={() => handlePDFExport('night')}
+                    className="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Export Night PDF
+                  </button>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                  <select
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    <option value="start-asc">Start Time ↑ (Earliest First)</option>
+                    <option value="start-desc">Start Time ↓ (Latest First)</option>
+                    <option value="end-asc">End Time ↑ (Earliest First)</option>
+                    <option value="end-desc">End Time ↓ (Latest First)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Current Deployments</h3>
               
