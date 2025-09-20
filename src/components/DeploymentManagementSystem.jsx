@@ -717,7 +717,7 @@ const calculateBreakTime = (staffMember, workHours) => {
             <TrendingUp className="w-4 h-4 inline mr-2" />
             Sales Data
           </button>
-          >
+          
             <TrendingUp className="w-4 h-4 inline mr-2" />
             Reports
           </button>
