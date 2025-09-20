@@ -717,14 +717,10 @@ const calculateBreakTime = (staffMember, workHours) => {
             <TrendingUp className="w-4 h-4 inline mr-2" />
             Sales Data
           </button>
-          
-            <TrendingUp className="w-4 h-4 inline mr-2" />
-            Reports
-          </button>
           <button
-            onClick={() => setCurrentPage('targets')}
+            onClick={() => setCurrentPage('Repots')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              currentPage === 'targets'
+              currentPage === 'Reports'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
